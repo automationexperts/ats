@@ -5,6 +5,7 @@ from time import sleep
 #display the version of python being used.
 print (sys.version)
 
+#pins refer to the pins on the encoder
 pin1 = 4
 pin2 = 17
 pin4 = 27
