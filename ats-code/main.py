@@ -1,6 +1,12 @@
 import sys
-#from RPi import GPIO
-#from time import sleep
+import RPi.GPIO as GPIO
+import time
+
+import serial
+ser = serial.Serial('/dev/ttyUSB0')
+print(ser.name)
+ser.write(b'hello')
+ser.close()
 
 #display the version of python being used.
 print (sys.version)
