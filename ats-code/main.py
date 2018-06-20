@@ -1,15 +1,77 @@
-import sys
-import RPi.GPIO as GPIO
 import time
-
+import sys
 import serial
-ser = serial.Serial('/dev/ttyUSB0')
-print(ser.name)
-ser.write(b'hello')
-ser.close()
+from RPi import GPIO
+import binascii
 
 #display the version of python being used.
+print("Sytem Version:")
 print (sys.version)
+
+
+#BACKGROUND INFO
+#   for this script to work the Rx and Tx pins on the raspberry pi must be
+#   connected to one another. This is also known as an RS232 Loopback test
+
+def checkopen():
+    if ser.is_open == True:
+        print("Connection is open")
+    elif ser.is_open == False:
+        print("Connection is closed")
+    pass
+
+
+#FUNCTIONS
+def convert_bytes_to_listint(byte):
+    '''
+    Pass in a byte literal of type "bytes". This type may contain ASCII characters.
+    This function returns that byte literal broken up into a list and converted into integer values from 0 to 255.
+    '''
+    bytelist = list(byte)
+    return bytelist
+
+
+#CONNECTION SETUP
+print(sys.version)
+#ser = serial.Serial("/dev/ttyAMA0", baudrate =  38400, timeout = 1000)
+#note that /dev/serial0 brings up the default serial port whereas ttyAMA0
+#attempts to access the UART used for the bluetooth on the raspberry pi 3
+ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2)
+print(ser.name)
+print("Baudrate = {b}".format(b=ser.baudrate))
+
+#CAN USE THIS FOR SETTING BAUDRATE AFTER CONNECTION IS SETUP
+#ser.baudrate = 38400
+#print("Baudrate = {b}".format(b=ser.baudrate))
+
+#OPEN CONNECTION AND CHECK
+checkopen()
+
+
+#read one character
+#msga = ser.read()
+
+#read 100 characters and store it in str msg
+msg = ser.read(100)
+
+#print the string msg
+print(msg)
+
+#print the type of msg
+print(type(msg))
+
+
+#CLOSE CONNECTION AND CHECK
+ser.close()
+checkopen()
+
+#Test code. Convert bytes to hexadecimal.
+print(convert_bytes_to_listint(msg))
+
+
+
+#-------------------------------------------------------------------------------
+
 
 #DMM variables
 
@@ -79,6 +141,3 @@ Motor_OnPos =			0x00
 Motor_Busy =			0x01
 Motor_Free =			0x02
 Motor_Alarm =			0x03
-
-
-print(General_Read)
