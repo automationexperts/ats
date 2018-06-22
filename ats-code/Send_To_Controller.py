@@ -82,20 +82,60 @@ Motor_Alarm =			0x03
 # Drive ID's
 stage1_drive_id = 10 # drive id for stage 1 servo drive that runs the stage 1 set of rollers
 stage2_drive_id = 20 # drive id for stage 2 servo drive that runs the stage 2 set of rollers
-radius_drive_id = 21 # drive id for the servo drive that controls
-# the stage 2 platform that changes the bend radius of the machine
-angle_drive_id = 22 # drive id for the servo drive that controls
-# the angle of the entire stage 2 platform.
+radius_drive_id = 21 # drive id for the servo drive that controls the stage 2 platform that changes the bend radius of the machine
+angle_drive_id = 22 # drive id for the servo drive that controls the angle of the entire stage 2 platform.
 # the servo driven by this servo drive is attached to the rack and pinion on stage 2 of the machine
+
+
+# ---------------------Functions for Testing--------------------------------------------------------
+
+def binary_display_int(integer):
+    '''
+    Takes in an integer
+    Returns the binary representation of the argument as a string
+
+    A helpful tool to check the binary representation of an integer
+    '''
+    binary_number = bin(integer)[2:].zfill(8)
+    # bin converts the integer to a binary string with 0b in front
+    # using the [2:] reference we can just show what we want to see, 0's and 1's.
+    return binary_number
+
+
+def binary_display_byte(byte):
+    '''
+    Takes in a byte
+    returns the binary representation of the arguement as a string
+
+    A helpful tool to check the binary representation of a byte
+    '''
+    byte_as_integer = int.from_bytes(byte, byteorder='big', signed=True)
+    # class method that takes in a byte and returns the integer
+    # byte order needs to be big if you want the MSB on the left side. Byte order= little gives you MSB on the right.
+    # the signed argument indicates whether two's complement is used to represent the integer
+
+    binary_number = bin(byte_as_integer)[2:].zfill(8)
+    # bin converts the integer to a binary string with 0b in front
+    # using the [2:] reference we can just show what we want to see, 0's and 1's.
+
+    return binary_number
+
+
+# ------------------------------------------------------------------------------------------------
+
 
 def DriveByte(a): #formats start byte properly pg 52
     #if this returns nothing then there is an error
     if a >= 0 and a <= 63: 
         return a
 
-def FunctionAndLength(length,code): #formats 2nd byte pg53
-    l = (length-1) * 32 #pg53, 32 is placeholder moving l to proper position
-    output = 0x80 + l + code
+def FunctionAndLength(length,code):
+    '''
+    formats 2nd byte pg53
+    '''
+    #SW; Why aren't we taking length-4 instead.
+    l = (length-4) * 32 #pg53, 32 is placeholder moving l to proper position
+    output = 0x80 + l + code #0x80 adds 1000 0000 to the number
     return output
 
 def OutData(data): #returns a list containing properly formatted integers to transmit data
@@ -122,12 +162,20 @@ def OutData(data): #returns a list containing properly formatted integers to tra
 def OutputSize(data): #notice how function is very similar to OutData, 
     BinData = bin(data)[2:] #converts input integer to binary string and chops off 0b
     length = len(BinData)   #number of binary digits in data
+
+    #figure out how many bytes are in the data
     b = divmod(length,7)
+    #SW: why isn't this 8?
+    #BH: Because each byte must start with a 1 and therefore only 7 binary digits are usable.
+
     if b[1] == 0: #if modulus is 0 number is exactly divisible
         a = b[0]
     else:
-        a = b[0] + 1
+        a = b[0] + 1 # if not perfectly divisible take the quotient and add 1.
     numbyte=int(a) # number of bytes required to send data
+
+    # check if the data meets the criteria of being less than equal to 4 packets.
+    # If it meets the criteria return the data, if not then return an error.
     if numbyte > 4:
         return
     else:
@@ -141,23 +189,25 @@ def CheckSum(BnA, BnMinus1A, DatalistA): # see page 55
     S = BnA + BnMinus1A +dataSum
     output = 0x80 + (S%128)
     return output
-        
+
+
 
 # Start of Send code -------------------------------------------------------
 
 # initialize the pi's serial port to controller parameters
 # page 50 of controller manual
-#ser = serial.Serial("/dev/serial0")  #this is the only serial port we use on the pi
+ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2)  #this is the only serial port we use on the pi
 #ser.baudrate = 38400
 #ser.timeout = 2
-#ser.PARITY_NONE
-#ser.STOPBITS_ONE
-#ser.EIGHTBITS
+ser.PARITY_NONE
+ser.STOPBITS_ONE
+ser.EIGHTBITS
+
 
 #set the varibles below
 driveID = radius_drive_id
-ToDo = 0x1a #packet function code see page 53
-packet = 0x14b5 #data to be sent
+ToDo = 0x1a #packet function code see page 53. Function Code
+packet = 0x14b5 #data to be sent. Data can be max speed, gear number, etc.
 OutLen = OutputSize(packet) #of data bits see page 54 for how to set
 
 OutArray = bytearray(OutLen+3) # data to send to controller
@@ -175,7 +225,16 @@ for i in range(2,OutLen+3):
 OutArray[OutLen+3] = B0.to_bytes(1,'big')
 
 #OutArray is now ready to be passed out to servo controller
-#ser.write(OutArray)
-#ser.flush()
+ser.write(OutArray)
+
+#read 100 characters and store it in str msg
+msg = ser.read(100)
+
+#print the string msg
+print(msg)
+
+ser.flush()
+ser.close()
+
 
 # End of Send code ---------------------------------------------------------
