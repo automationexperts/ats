@@ -203,11 +203,17 @@ def OutputSize(data): #notice how function is very similar to OutData,
         return numbyte
     
 def CheckSum(BnA, BnMinus1A, DatalistA): # see page 55
+    '''
+    :param BnA:
+    :param BnMinus1A:
+    :param DatalistA:
+    :return:
+    '''
     numData = len(DatalistA) #number of bytes used to transmit data   
     dataSum = 0
     for i in range(0,numData): # Calculates sum of data integers
         dataSum = dataSum + DatalistA[i]
-    S = BnA + BnMinus1A +dataSum
+    S = BnA + BnMinus1A + dataSum
     output = 0x80 + (S%128)
     return output
 
@@ -243,8 +249,8 @@ OutArray[0] = Bn
 OutArray[1] = BnMinus1
 for i in range(2,OutLen+2):
     a = DataList[i-2]
-    OutArray[i] = a.to_bytes(1,'big')
-OutArray[OutLen+2] = B0.to_bytes(1,'big')
+    OutArray[i] = a
+OutArray[OutLen+2] = B0
 
 #OutArray is now ready to be passed out to servo controller
 ser.write(OutArray)
