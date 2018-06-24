@@ -125,6 +125,13 @@ def binary_display_byte(byte):
 
 
 def DriveByte(a): #formats start byte properly pg 52
+    '''
+    :param a: takes in integer argument. Argument should be the Drive ID number between 0 and 63
+    :return: returns the Drive ID if it is between 0 and 63
+    the MSB most significant bit must begin with a 0. 0 _ _ _ _ _ _ _
+    The remaining 7 binary digits contain the Drive ID.
+    '''
+
     #if this returns nothing then there is an error
     if a >= 0 and a <= 63: 
         return a
@@ -144,7 +151,13 @@ def FunctionAndLength(length,code):
 >>>>>>> 2326dc3f7c7ad1cc03f638816410f79c659f728f
     return output
 
-def OutData(data): #returns a list containing properly formatted integers to transmit data
+def OutData(data):
+    '''
+    Function Description: Returns a list containing properly formatted integers to transmit data to a DMM servo motor.
+    :param data: A large integer that we want to transmit to the servo drive.
+    :return: a list of formatted integers to send to the servo drive.
+    '''
+
     # input data must be a large integer we want to transmit
     BinData = bin(data)[2:] #converts input integer to binary string and chops off 0b
     length = len(BinData)   #number of binary digits in data
@@ -154,18 +167,26 @@ def OutData(data): #returns a list containing properly formatted integers to tra
     else:
         a = b[0] + 1
     numbyte=int(a) # number of bytes required to send data
-    if numbyte > 4:
+
+    if numbyte > 4: #error checking if numbyte >4
         return
-    
+
+    #create the first data packet by taking the remainder
     outlist=list()
-    outlist.append(int(BinData[0:b[1]],2) + 0x80)
+    outlist.append(int(BinData[0:b[1]],2) + 0x80) #b[1] is the remainder. Adding 0x80 ensures there is a 1 in the MSB.
+
+    #create the remaining data packets by breaking up the binary data into groups of 7
     for i in range(1,numbyte):
         start = b[1] + (i-1) * 7
         end   = b[1] + i * 7
-        outlist.append(int(BinData[start:end],2) + 0x80)
+        outlist.append(int(BinData[start:end],2) + 0x80) # Adding 0x80 ensures there is a 1 in the MSB.
     return outlist
 
-def OutputSize(data): #notice how function is very similar to OutData, 
+def OutputSize(data): #notice how function is very similar to OutData,
+    '''
+    :param data:
+    :return:
+    '''
     BinData = bin(data)[2:] #converts input integer to binary string and chops off 0b
     length = len(BinData)   #number of binary digits in data
 
@@ -188,11 +209,17 @@ def OutputSize(data): #notice how function is very similar to OutData,
         return numbyte
     
 def CheckSum(BnA, BnMinus1A, DatalistA): # see page 55
+    '''
+    :param BnA:
+    :param BnMinus1A:
+    :param DatalistA:
+    :return:
+    '''
     numData = len(DatalistA) #number of bytes used to transmit data   
     dataSum = 0
     for i in range(0,numData): # Calculates sum of data integers
         dataSum = dataSum + DatalistA[i]
-    S = BnA + BnMinus1A +dataSum
+    S = BnA + BnMinus1A + dataSum
     output = 0x80 + (S%128)
     return output
 
@@ -205,9 +232,10 @@ def CheckSum(BnA, BnMinus1A, DatalistA): # see page 55
 ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2)  #this is the only serial port we use on the pi
 #ser.baudrate = 38400
 #ser.timeout = 2
-ser.PARITY_NONE
-ser.STOPBITS_ONE
-ser.EIGHTBITS
+
+#ser.PARITY_NONE; ERROR: Serial objects has no attribute 'PARITY_NONE'
+#ser.STOPBITS_ONE; ERROR: Serial objects has no attribute 'STOPBITS_ONE'
+#ser.EIGHTBITS; ERROR: Serial objects has no attribute 'EIGHTBITS'
 
 
 #set the varibles below
@@ -223,12 +251,12 @@ DataList = OutData(packet)
 B0 = CheckSum(Bn, BnMinus1, DataList)
 
 #assign variables to output byte array
-OutArray[0] = Bn.to_bytes(1,'big')
-OutArray[1] = BnMinus1.to_bytes(1,'big')
-for i in range(2,OutLen+3):
+OutArray[0] = Bn
+OutArray[1] = BnMinus1
+for i in range(2,OutLen+2):
     a = DataList[i-2]
-    OutArray[i] = a.to_bytes(1,'big')
-OutArray[OutLen+3] = B0.to_bytes(1,'big')
+    OutArray[i] = a
+OutArray[OutLen+2] = B0
 
 #OutArray is now ready to be passed out to servo controller
 ser.write(OutArray)
