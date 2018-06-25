@@ -167,18 +167,13 @@ def OutputSize(data): #notice how function is very similar to OutData,
 
     #figure out how many bytes are in the data
     b = divmod(length,7)
-    #SW: why isn't this 8?
-    #BH: Because each byte must start with a 1 and therefore only 7 binary digits are usable.
 
-    if b[1] == 0: #if modulus is 0 number is exactly divisible
-        a = b[0]
-    else:
-        a = b[0] + 1 # if not perfectly divisible take the quotient and add 1.
-    numbyte=int(a) # number of bytes required to send data
+    numbyte=int(b[0]+1) # number of bytes required to send data
 
     # check if the data meets the criteria of being less than equal to 4 packets.
     # If it meets the criteria return the data, if not then return an error.
     if numbyte > 4:
+        print('Data sent is too big, error')
         return
     else:
         return numbyte
