@@ -139,21 +139,27 @@ def OutData(data): #returns a list containing properly formatted integers to tra
     BinData = bin(data)[2:] #converts input integer to binary string and chops off 0b
     length = len(BinData)   #number of binary digits in data
     b = divmod(length,7)
-    if b[1] == 0: #if modulus is 0 number is exactly divisible
-        a = b[0]
-    else:
-        a = b[0] + 1
-    numbyte=int(a) # number of bytes required to send data
+    numbyte=int(b[0]+1) # number of bytes required to send data
     if numbyte > 4:
+        print('Data sent is too big, error')
         return
     
     outlist=list()
-    outlist.append(int(BinData[0:b[1]],2) + 0x80)
-    for i in range(1,numbyte):
-        start = b[1] + (i-1) * 7
-        end   = b[1] + i * 7
-        outlist.append(int(BinData[start:end],2) + 0x80)
-    return outlist
+    if b[1] != 0: #append partial start byte to the beginning of BinData
+        outlist.append(int(BinData[0:b[1]],2) + 0x80)  
+        for i in range(1,numbyte):
+            start = b[1] + (i-1) * 7
+            end   = b[1] + (i) * 7
+            outlist.append(int(BinData[start:end],2) + 0x80)
+        return outlist
+    
+    if b[1] == 0:
+        outlist.append(0x80) #need a leading blank byte see example 3 pg 62
+        for i in range(0,numbyte-1):
+            start = b[1] + (i) * 7
+            end = b[1] +(i+1) * 7
+            outlist.append(int(BinData[start:end],2) + 0x80)
+        return outlist
 
 def OutputSize(data): #notice how function is very similar to OutData, 
     BinData = bin(data)[2:] #converts input integer to binary string and chops off 0b
