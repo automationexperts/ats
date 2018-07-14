@@ -7,8 +7,9 @@ Created on Thu Jun 21 11:55:13 2018
 
 import time
 import sys
-import serial
-from RPi import GPIO
+#import serial
+import numpy
+#from RPi import GPIO
 import binascii
 
 #Function (Sent by host)
@@ -32,29 +33,29 @@ Set_MainGain =          0x10
 Set_SpeedGain =         0x11
 Set_IntGain =           0x12
 Set_TrqCons =           0x13
-Set_HighSpeed =			0x14
-Set_HighAccel =			0x15
+Set_HighSpeed =		    	0x14
+Set_HighAccel =		    	0x15
 Set_Pos_OnRange =       0x16
-Set_FoldNumber =		0x17
+Set_FoldNumber =		  0x17
 Read_MainGain =         0x18
 Read_SpeedGain =        0x19
 Read_IntGain =          0x1a
 Read_TrqCons =          0x1b
-Read_HighSpeed =    	0x1c
-Read_HighAccel =	    0x1d
+Read_HighSpeed =    	  0x1c
+Read_HighAccel =	     0x1d
 Read_Pos_OnRange =      0x1e
-Read_FoldNumber =	    0x1f
+Read_FoldNumber =	     0x1f
 
 #functions (sent by driver)
 Is_MainGain =           0x10
 Is_SpeedGain =          0x11
 Is_IntGain =            0x12
 Is_TrqCons =            0x13
-Is_HighSpeed =			0x14
-Is_HighAccel =			0x15
-Is_Driver_ID =			0x16
+Is_HighSpeed =			  0x14
+Is_HighAccel =			  0x15
+Is_Driver_ID =			  0x16
 Is_Pos_OnRange =        0x17
-Is_FoldNumber =			0x18
+Is_FoldNumber =			  0x18
 Is_Status =             0x19
 Is_Config =             0x1a
 
@@ -67,16 +68,16 @@ Driver_Normal =         0x00
 Driver_LostPhase =      0x04
 Driver_OverCurrent =    0x08
 Driver_OverHeat =       0x0c            #for b4 b3 b2 */
-Driver_OverVolts =		0x14
-Is_AbsPos32 =			0x1b		    #Absolute position 32
-Is_TrqCurrent =			0x1e		    #Motor current
+Driver_OverVolts =		  0x14
+Is_AbsPos32 =			  0x1b		    #Absolute position 32
+Is_TrqCurrent =			  0x1e		    #Motor current
 
 #Following are used for Machine Code interpreting
-Line_Error =			0xff
-Line_OK =				0x00
+Line_Error =			   0xff
+Line_OK =				   0x00
 Motor_OnPos =			0x00
-Motor_Busy =			0x01
-Motor_Free =			0x02
+Motor_Busy =			   0x01
+Motor_Free =			   0x02
 Motor_Alarm =			0x03
 
 # Drive ID's
@@ -128,23 +129,75 @@ def DriveByte(a): #formats start byte properly pg 52
     #if this returns nothing then there is an error
     if a >= 0 and a <= 63: 
         return a
+    else:
+        print('Error: drive location out of range')
 
 def FunctionAndLength(length,code): #formats 2nd byte pg53
     l = (length-1) * 32 #pg53, 32 is placeholder moving l to proper position
     output = 0x80 + l + code #0x80 adds 1000 0000 to the number
     return output
 
+def int2ControllerFormat(num):
+    #import numpy
+    #make sure 'import numpy' is at top of file
+    if num > 0 and num < 64:
+        output = int(numpy.binary_repr(num,7),2)
+        return output
+    if num > 63  and num < 8192:
+        output = int(numpy.binary_repr(num,14),2)
+        return output
+    if num > 8191  and num < 1048576:
+        output = int(numpy.binary_repr(num,21),2)
+        return output
+    if num > 1048575:
+        output = int(numpy.binary_repr(num,28),2)
+        return output
+    if num > 134217727:
+        print('error, input data out of range')
+        return
+
+    if num < 0 and num > -65:
+        output = int(numpy.binary_repr(num,7),2)
+        return output
+    if num <-64  and num > -8193:
+        output = int(numpy.binary_repr(num,14),2)
+        return output
+    if num <-8192  and num > -1048577:
+        output = int(numpy.binary_repr(num,21),2)
+        return output
+    if num <-1048576:
+        output = int(numpy.binary_repr(num,28),2)
+        return output
+    if num <-134217728:
+        print('error, input data out of range')
+        return
+
 def OutData(data): #returns a list containing properly formatted integers to transmit data
     # input data must be a large integer we want to transmit
-    BinData = bin(data)[2:] #converts input integer to binary string and chops off 0b
+    #In C data is sent out without adjusting for negative numbers so make sure
+    #python is representing data the same as C represents an integer
+    #Incoming data is interpreted using Cal_SignValue or Cal_Value, both 
+    #functions do the same thing.
+    BinData = bin(int2ControllerFormat(data))[2:] #converts input integer to binary string and chops off 0b
     length = len(BinData)   #number of binary digits in data
     b = divmod(length,7)
-    numbyte=int(b[0]+1) # number of bytes required to send data
-    if numbyte > 4:
-        print('Data sent is too big, error')
-        return
-    
     outlist=list()
+    
+    if (length == 7 or length == 14 or length == 21 or length == 28) and BinData[0] == '1':  #number is negative
+       numbyte=int(b[0]) # number of bytes required to send data 
+       for i in range(0,numbyte):
+           start = b[1] + (i) * 7
+           end = b[1] +(i+1) * 7
+           outlist.append(int(BinData[start:end],2) + 0x80)
+       return outlist
+
+    else:
+       numbyte=int(b[0]+1) # number of bytes required to send data
+    
+    if numbyte > 4:
+        print('Error: data too large to be sent')
+        return
+        
     if b[1] != 0: #append partial start byte to the beginning of BinData
         outlist.append(int(BinData[0:b[1]],2) + 0x80)  
         for i in range(1,numbyte):
@@ -152,7 +205,7 @@ def OutData(data): #returns a list containing properly formatted integers to tra
             end   = b[1] + (i) * 7
             outlist.append(int(BinData[start:end],2) + 0x80)
         return outlist
-    
+        
     if b[1] == 0:
         outlist.append(0x80) #need a leading blank byte see example 3 pg 62
         for i in range(0,numbyte-1):
@@ -162,18 +215,21 @@ def OutData(data): #returns a list containing properly formatted integers to tra
         return outlist
 
 def OutputSize(data): #notice how function is very similar to OutData, 
-    BinData = bin(data)[2:] #converts input integer to binary string and chops off 0b
+    BinData = bin(int2ControllerFormat(data))[2:] #converts input integer to binary string and chops off 0b
     length = len(BinData)   #number of binary digits in data
 
     #figure out how many bytes are in the data
     b = divmod(length,7)
 
-    numbyte=int(b[0]+1) # number of bytes required to send data
+    if (length == 7 or length == 14 or length == 21 or length == 28) and BinData[0] == '1':  #number is negative
+       numbyte=int(b[0]) # number of bytes required to send data 
+    else:
+       numbyte=int(b[0]+1) # number of bytes required to send data
 
     # check if the data meets the criteria of being less than equal to 4 packets.
     # If it meets the criteria return the data, if not then return an error.
     if numbyte > 4:
-        print('Data sent is too big, error')
+        print('Error: data too large to be sent')
         return
     else:
         return numbyte
@@ -187,13 +243,31 @@ def CheckSum(BnA, BnMinus1A, DatalistA): # see page 55
     output = 0x80 + (S%128)
     return output
 
-
+def Send(driveID, ToDo, packet):
+    #packet should be integer not hex
+    #Send packet to controller
+    OutLen = OutputSize(packet) #of data bits see page 54 for how to set
+    OutArray = bytearray(OutLen+3) # data to send to controller
+    Bn = DriveByte(driveID)
+    BnMinus1 = FunctionAndLength(OutLen, ToDo)
+    DataList = OutData(packet) 
+    B0 = CheckSum(Bn, BnMinus1, DataList)
+    #assign variables to output byte array
+    OutArray[0] = Bn
+    OutArray[1] = BnMinus1
+    for i in range(2,OutLen+2):
+        a = DataList[i-2]
+        OutArray[i] = a
+    OutArray[OutLen+2] = B0
+    #ser.write(OutArray)
+    #ser.flush()
+    return OutArray
 
 # Start of Send code -------------------------------------------------------
 
 # initialize the pi's serial port to controller parameters
 # page 50 of controller manual
-ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)  #this is the only serial port we use on the pi
+#ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)  #this is the only serial port we use on the pi
 #ser.baudrate = 38400
 #ser.timeout = 2
 #ser.PARITY_NONE
@@ -203,36 +277,17 @@ ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = s
 #PACKET DEFINITION
 #DRIVE ID, FUNCTION CODE, AND DATA
 #set the varibles below to set the data that will be sent.
-driveID = radius_drive_id
-ToDo = Turn_ConstSpeed #packet function code see page 53. Function Code
-packet = 0x01 #data to be sent. Data can be max speed, gear number, etc.
-OutLen = OutputSize(packet) #of data bits see page 54 for how to set
+driveID = 0x08
+FunctionCode = Turn_ConstSpeed #packet function code see page 53. Function Code
+data = -121 #data to be sent. Data can be max speed, gear number, etc.
 
-OutArray = bytearray(OutLen+3) # data to send to controller
-Bn = DriveByte(driveID)
-BnMinus1 = FunctionAndLength(OutLen, ToDo)
-DataList = OutData(packet) 
-B0 = CheckSum(Bn, BnMinus1, DataList)
+ToController = Send(driveID, FunctionCode, data)
+#everything works, packets are sent properly, negative numbers may need to 
+#be properly formatted
 
-#assign variables to output byte array
-OutArray[0] = Bn
-OutArray[1] = BnMinus1
-for i in range(2,OutLen+2):
-    a = DataList[i-2]
-    OutArray[i] = a
-OutArray[OutLen+2] = B0
-
-#OutArray is now ready to be passed out to servo controller
-ser.write(OutArray)
-
-#read 100 characters and store it in str msg
-msg = ser.read(100)
-
-#print the string msg
-print(msg)
-
-ser.flush()
-ser.close()
-
+#Sends Binary output to console for debugging purposes
+print(ToController)
+for a in ToController:
+    print(bin(a)[2:])
 
 # End of Send code ---------------------------------------------------------

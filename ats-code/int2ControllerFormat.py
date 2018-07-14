@@ -4,12 +4,13 @@ Created on Mon Jun 25 09:39:11 2018
 
 @author: henra
 """
-
+num = -136
 import numpy
 
 #formats integers properly according to 2's complement rule
 #see page 54
 def int2ControllerFormat(num):
+    #import numpy
     #make sure 'import numpy' is at top of file
     if num > 0 and num < 64:
         output = int(numpy.binary_repr(num,7),2)
@@ -42,3 +43,5 @@ def int2ControllerFormat(num):
     if num <-134217728:
         print('error, input data out of range')
         return
+a=int2ControllerFormat(num)
+print(bin(a)[2:])
