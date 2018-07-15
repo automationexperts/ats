@@ -10,6 +10,7 @@ import sys
 import serial
 from RPi import GPIO
 import binascii
+import math
 
 #Function (Sent by host)
 General_Read =          0x0e
@@ -43,7 +44,7 @@ Read_TrqCons =          0x1b
 Read_HighSpeed =    	0x1c
 Read_HighAccel =	    0x1d
 Read_Pos_OnRange =      0x1e
-Read_FoldNumber =	    0x1f
+Read_GearNumber =	    0x1f
 
 #functions (sent by driver)
 Is_MainGain =           0x10
@@ -84,6 +85,7 @@ stage1_drive_id = 10 # drive id for stage 1 servo drive that runs the stage 1 se
 stage2_drive_id = 20 # drive id for stage 2 servo drive that runs the stage 2 set of rollers
 radius_drive_id = 21 # drive id for the servo drive that controls the stage 2 platform that changes the bend radius of the machine
 angle_drive_id = 22 # drive id for the servo drive that controls the angle of the entire stage 2 platform.
+general_drive_id = 127
 # the servo driven by this servo drive is attached to the rack and pinion on stage 2 of the machine
 
 
@@ -192,12 +194,90 @@ def CheckSum(BnA, BnMinus1A, DatalistA): # see page 55
     output = 0x80 + (S%128)
     return output
 
+# MACHINE CHARACTERISTICS ---------------------------- [START]
+
+#gearbox ratios
+stage1_gear_ratio = 60 #gear ratio for gearbox that drives stage 1 rollers
+stage2_gear_ratio = 60 #gear ratio for gearbox that drives stage 2 rollers
+radius_gear_ratio = 40 #gear ratio for gearbox that drives stage 2 sled that adjusts the bend radius
+angle_gear_ratio = 32 #gear ratio for the gearbox that adjusts the angle of stage 2
+
+#define roller diameter in inches
+roller_diameter = 10.0
+
+#ballscrew lead in mm
+# LEAD refers to the distance traveled for each complete turn of the screw
+ballscrew_lead = 5 #mm
+
+# MACHINE CHARACTERISTICS ---------------------------- [END]
+
 
 # High Level Functions [Start] -------------------------------------------------------
 
+#define variable for linear speed in m/min.
+#default value is 1.0 m/min
+linear_speed = 1.0
+
+def get_rpm(s,D,R):
+    '''
+    :param s: desired linear speed in m/min that the machine will process profiles
+    :param D: diameter of the roller in inches
+    :param R: gear ratio of the relative gearbox driving the rollers
+    :return: gets rpm of motor rounded to the nearest integer that the motor needs to turn at to meet the desired linear speed
+    '''
+
+    rpm = R*s*1000/(math.pi*D*25.4)
+    print("Linear Speed is",s,"m/min")
+    print("RPM of motor is",round(rpm),"rpm")
+    return round(rpm)
+
+def stage1_start(rpm):
+    '''
+    :param rpm:
+    :return:
+    '''
+
+    #Send(stage1_drive_id,Turn_ConstSpeed,rpm)
+    print("Stage 1 Started at",rpm,"rpm")
+    return
+
+def stage2_start(rpm):
+    '''
+    :param rpm:
+    :return:
+    '''
+
+    #Send(stage2_drive_id,Turn_ConstSpeed,rpm)
+    print("Stage 2 Started at",rpm,"rpm")
+    return
+
+def stop_all():
+    '''
+
+    :return:
+    '''
+
+    #Send(stage1_drive_id,Turn_ConstSpeed,0)
+    #Send(stage2_drive_id,Turn_ConstSpeed,0)
+    #Send(radius_drive_id,Turn_ConstSpeed,0)
+    #Send(angle_drive_id,Turn_ConstSpeed,0)
+    print("All drives stopped")
+    return
+
+def move_Raxis(d):
+    '''
+    :param d:
+    :return:
+    '''
+    #d is the distance in mm, positive or negative that you want the r-axis
+    #Send(radius_drive_id,Go_Relative_Pos,steps)
+
+    return
+
+
+
 
 # High Level Functions [End] -------------------------------------------------------
-
 
 
 
@@ -206,7 +286,7 @@ def CheckSum(BnA, BnMinus1A, DatalistA): # see page 55
 
 # initialize the pi's serial port to controller parameters
 # page 50 of controller manual
-ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 15, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)  #this is the only serial port we use on the pi
+ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)  #this is the only serial port we use on the pi
 #ser.baudrate = 38400
 #ser.timeout = 2
 #ser.PARITY_NONE
@@ -216,10 +296,10 @@ ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 15, bytesize = 
 #PACKET DEFINITION
 #DRIVE ID, FUNCTION CODE, AND DATA
 #set the varibles below to set the data that will be sent.
-driveID = radius_drive_id
-ToDo = Read_Driver_ID
+driveID = general_drive_id
+ToDo = Read_GearNumber
 #ToDo = Turn_ConstSpeed #packet function code see page 53. Function Code
-packet = 0 #data to be sent. Data can be max speed, gear number, etc.
+packet = 1 #data to be sent. Data can be max speed, gear number, etc.
 OutLen = OutputSize(packet) #of data bits see page 54 for how to set
 
 OutArray = bytearray(OutLen+3) # data to send to controller
@@ -242,16 +322,16 @@ print("OutArray Type")
 print(type(OutArray))
 print("OutArray")
 print(OutArray)
-ser.write(OutArray)
+ser.write(OutArray)                    #uncomment me
 
 
 
 #read 100 characters and store it in str msg
-print("message read")
-msg = ser.read(1000)
+print("message read")                    #uncomment me
+msg = ser.read(1000)                    #uncomment me
 
 #print the string msg
-print(msg)
+print(msg)                    #uncomment me
 
 ser.flush()
 ser.close()
