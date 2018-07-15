@@ -198,7 +198,7 @@ def CheckSum(BnA, BnMinus1A, DatalistA): # see page 55
 
 # initialize the pi's serial port to controller parameters
 # page 50 of controller manual
-ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 15, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_TWO)  #this is the only serial port we use on the pi
+ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 15, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)  #this is the only serial port we use on the pi
 #ser.baudrate = 38400
 #ser.timeout = 2
 #ser.PARITY_NONE
