@@ -12,6 +12,7 @@ import numpy #unable to install numpy to the raspberry pi
 from RPi import GPIO
 import binascii
 import math
+import os
 
 #Function (Sent by host)
 General_Read =          0x0e
@@ -306,11 +307,15 @@ ballscrew_lead = 5 #mm
 # MACHINE CHARACTERISTICS ---------------------------- [END]
 
 
-# High Level Functions [Start] -------------------------------------------------------
 
 #define variable for linear speed in m/min.
 #default value is 1.0 m/min
 linear_speed = 1.0
+
+
+
+# High Level Functions [Start] -------------------------------------------------------
+
 
 def get_rpm(s,D,R):
     '''
@@ -321,8 +326,8 @@ def get_rpm(s,D,R):
     '''
 
     rpm = R*s*1000/(math.pi*D*25.4)
-    print("Linear Speed is",s,"m/min")
-    print("RPM of motor is",round(rpm),"rpm")
+    #print("Linear Speed is",s,"m/min")
+    #print("RPM of motor is",round(rpm),"rpm")
     return round(rpm)
 
 def stage1_start(rpm):
@@ -331,7 +336,8 @@ def stage1_start(rpm):
     :return:
     '''
 
-    Send(stage1_drive_id,Turn_ConstSpeed,rpm)
+    #Send(stage1_drive_id,Turn_ConstSpeed,rpm)
+    Send(general_drive_id, Turn_ConstSpeed, rpm)
     print("Stage 1 Started at",rpm,"rpm")
     return
 
@@ -341,7 +347,8 @@ def stage2_start(rpm):
     :return:
     '''
 
-    Send(stage2_drive_id,Turn_ConstSpeed,rpm)
+    #Send(stage2_drive_id,Turn_ConstSpeed,rpm)
+    Send(general_drive_id, Turn_ConstSpeed, rpm)
     print("Stage 2 Started at",rpm,"rpm")
     return
 
@@ -368,7 +375,120 @@ def move_Raxis(d):
 
     return
 
+def gear_ratio(gear_num):
+    return 4096/gear_num
+
+def max_motor_speed(k,gear_ratio):
+    '''
+
+    :param k: can be an integer from 1 to 127. Max Acceleration parameter that should be read from the servo drive using
+    the Read_HighAccel function code.
+
+    :param gear_ratio: use gear_ratio(gear_num) function to calculate this
+
+    :return: Returns the maximum speed of the motor in rpm
+    '''
+
+    maxspeed = (1/16)*(k+3)*(k+3)*12.21*gear_ratio
+    return maxspeed
+
+def max_motor_acceleration(k,gear_ratio):
+    '''
+
+    :param k: can be an integer from 1 to 127. Max Acceleration parameter that should be read from the servo drive using
+    the Read_HighAccel function code.
+
+    :param gear_ratio: use gear_ratio(gear_num) function to calculate this
+
+    :return: Returns the acceleration of the motor in rpm/s
+    '''
+
+    maxacceleration = k*635.78*gear_ratio
+    return maxacceleration
+
+
 # High Level Functions [End] -------------------------------------------------------
+
+
+# Operating System Functions [Start] -----------------------------------------------------
+
+#Create a list of menu items/commands for the user to use
+#The key will be the option number displayed on the HMI (human machine interface)
+#The first item in the Dictionary list is the number of the command
+#The second item in the list is the function name without parenthesis ()
+#The third, fourth, fifth, and so on items in the list should be the arguments passed into the function
+menu_items = {"0":[0,"Stop All Rollers",stop_all],
+              "1":[1,"Start Stage 1 Rollers",stage1_start,get_rpm(linear_speed,roller_diameter,stage1_gear_ratio)],
+              "2":[2,"Start Stage 2 Rollers",stage2_start,get_rpm(linear_speed,roller_diameter,stage2_gear_ratio)]}
+
+#create a list of the keys so that we can validate if the input is valid
+menu_keys = menu_items.keys()
+
+
+def clear():
+    '''
+    Clears the Raspberry Pi Console Screen
+    :return:
+    '''
+    os.system("clear")
+    return
+
+def hmi_display(menu_items):
+    '''
+
+    :return:
+    '''
+
+    clear()
+    print("Linear Speed (of profile)\t",linear_speed,"m/min")
+    print("STAGE 1 RPM\t\t\t",get_rpm(linear_speed,roller_diameter,stage1_gear_ratio),"rpm")
+    print("STAGE 2 RPM\t\t\t",get_rpm(linear_speed,roller_diameter,stage2_gear_ratio),"rpm")
+    print("\n")
+    print("Command Options")
+
+    for i in range(0, len(menu_items)):
+        print(i, "-", menu_items[str(i)][1])
+
+    print("exit - exits the program")
+
+    return
+
+
+def execute_command(a):
+    '''
+    Executes the appropriate command when passed a list from menu_items
+    :return:
+    '''
+
+    #check how many items in menu_items to see if there are any arguments for the function we want to call
+    if len(menu_items[a]) == 3:
+        #if no arguments, execute the command in cell 2 of the list in the dictionary
+        menu_items[a][2]()
+    elif len(menu_items[a]) == 4:
+        # if 1 argument, execute the command in cell 2 of the list in the dictionary and pass the single argument
+        print("4")
+        menu_items[a][2](menu_items[a][3])
+    else:
+        print("Error: menu_items - dictionary cell (list) length does not match an expected value")
+
+    return
+
+#sample code for running a function from user input
+#def testfunction():
+#    print("it worked!")
+#    return
+
+#ommands = {'0':["this is my test function description",testfunction]}
+
+#cmd = input("Choose a command:")
+
+#print(commands[cmd][0])
+#commands[cmd][1]()
+
+
+
+# Operating System Functions [End] -------------------------------------------------------
+
 
 # Start of Send code -------------------------------------------------------
 
@@ -385,8 +505,8 @@ ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = s
 #DRIVE ID, FUNCTION CODE, AND DATA
 #set the varibles below to set the data that will be sent.
 driveID = general_drive_id
-FunctionCode = Go_Relative_Pos #packet function code see page 53. Function Code
-data = 100 #data to be sent. Data can be max speed, gear number, etc.
+FunctionCode = Read_FoldNumber #packet function code see page 53. Function Code
+data = 1 #data to be sent. Data can be max speed, gear number, etc.
 
 ToController = Send(driveID, FunctionCode, data)
 #everything works, packets are sent properly, negative numbers may need to 
@@ -396,9 +516,32 @@ ToController = Send(driveID, FunctionCode, data)
 print(ToController)
 for a in ToController:
     print(binary_display_int(a))
-    #print(bin(a)[2:])
+
+#read 100 characters and store it in str msg
+print("message read")                    #uncomment me
+msg = ser.read(1000)                    #uncomment me
+
+#print the string msg
+print(msg)                    #uncomment me
 
 # End of Send code ---------------------------------------------------------
+
+# Main Program [START] -----------------------------------------------------
+
+while True:
+
+    hmi_display(menu_items)
+
+    command = input("Input Command:")
+
+    if command == "exit":
+        break
+    elif command in menu_keys:
+        execute_command(command)
+    else:
+        continue
+
+# Main Program [END] -----------------------------------------------------
 
 
 # NOTES
@@ -412,3 +555,30 @@ for a in ToController:
 #issue was a > 0 operator instead of a >= 0 in the int2ControllerFormat function
 
 #how many steps in a full revolution???
+#n = steps in a full revolution
+#n = 16384/Gear_Ratio or n = 4*Gear_Num
+
+#2018-07-15 23:53
+#something odd about the Read_FoldNum command. When you send this command the servo sends back some data
+#typically the data that is received is 7 packets.
+#B6 B6 B5 B4 B3 B2 B1 B0
+#B6 is drive ID
+#B5 is number of packets and function code
+#B4 and B3 represent the 4*Line_Num
+#B2 and B1 contain the Gear_Num
+#B0 is check sum
+
+#2018-07-20 00:12
+#added hmi_display functionality for displaying a screen with current status and menu options for user to interact with
+#added menu items/commands to a dictionary
+#added user input and input validation
+#added functionality to execute commands based on user input
+
+#2018-07-22 8:00
+#goal for today is to:
+# - set linear speed
+# - set forward/reverse or be able to reverse the roller movement in some way
+# - get r-axis moving +'ve and -'ve in mm, translate mm to turns of the servo
+# - get theta-axis moving +'ve and -'ve in degrees, translate degrees to turns of the servo
+# - if Brad can get servo read code working then we can display the servo parameters also and introduce an initialization section of the code to grab those parameters
+
