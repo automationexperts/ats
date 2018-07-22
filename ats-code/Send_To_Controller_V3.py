@@ -146,19 +146,19 @@ def OutData(num): #returns a tuple containing properly formatted integers to tra
         output = (a,b)
         return output
     if num > 8191  and num < 1048576:
-        a = int(numpy.binary_repr(num,14)[0:7],2) + 0x80
-        b = int(numpy.binary_repr(num,14)[7:14],2) + 0x80
-        c = int(numpy.binary_repr(num,14)[14:21],2) + 0x80
+        a = int(numpy.binary_repr(num,21)[0:7],2) + 0x80
+        b = int(numpy.binary_repr(num,21)[7:14],2) + 0x80
+        c = int(numpy.binary_repr(num,21)[14:21],2) + 0x80
         output = (a,b,c)
         return output
     if num > 134217727:
         print('error, input data out of range')
         return
     if num > 1048575:
-        a = int(numpy.binary_repr(num,14)[0:7],2) + 0x80
-        b = int(numpy.binary_repr(num,14)[7:14],2) + 0x80
-        c = int(numpy.binary_repr(num,14)[14:21],2) + 0x80
-        d = int(numpy.binary_repr(num,14)[21:28],2) + 0x80
+        a = int(numpy.binary_repr(num,28)[0:7],2) + 0x80
+        b = int(numpy.binary_repr(num,28)[7:14],2) + 0x80
+        c = int(numpy.binary_repr(num,28)[14:21],2) + 0x80
+        d = int(numpy.binary_repr(num,28)[21:28],2) + 0x80
         output = (a,b,c,d)
         return output
 
@@ -171,19 +171,19 @@ def OutData(num): #returns a tuple containing properly formatted integers to tra
         output = (a,b)
         return output
     if num <-8192  and num > -1048577:
-        a = int(numpy.binary_repr(num,14)[0:7],2) + 0x80
-        b = int(numpy.binary_repr(num,14)[7:14],2) + 0x80
-        c = int(numpy.binary_repr(num,14)[14:21],2) + 0x80
+        a = int(numpy.binary_repr(num,21)[0:7],2) + 0x80
+        b = int(numpy.binary_repr(num,21)[7:14],2) + 0x80
+        c = int(numpy.binary_repr(num,21)[14:21],2) + 0x80
         output = (a,b,c)
         return output
     if num <-134217728:
         print('error, input data out of range')
         return
     if num <-1048576:
-        a = int(numpy.binary_repr(num,14)[0:7],2) + 0x80
-        b = int(numpy.binary_repr(num,14)[7:14],2) + 0x80
-        c = int(numpy.binary_repr(num,14)[14:21],2) + 0x80
-        d = int(numpy.binary_repr(num,14)[21:28],2) + 0x80
+        a = int(numpy.binary_repr(num,28)[0:7],2) + 0x80
+        b = int(numpy.binary_repr(num,28)[7:14],2) + 0x80
+        c = int(numpy.binary_repr(num,28)[14:21],2) + 0x80
+        d = int(numpy.binary_repr(num,28)[21:28],2) + 0x80
         output = (a,b,c,d)
         return output
     
@@ -233,7 +233,7 @@ def Send(driveID, ToDo, packet):
 #set the varibles below to set the data that will be sent.
 driveID = 0x08
 FunctionCode = Turn_ConstSpeed #packet function code see page 53. Function Code
-data = -75 #data to be sent. Data can be max speed, gear number, etc.
+data = 16384 #data to be sent. Data can be max speed, gear number, etc.
 
 ToController = Send(driveID, FunctionCode, data)
 #everything works, packets are sent properly, negative numbers may need to 
