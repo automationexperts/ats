@@ -151,29 +151,29 @@ def int2ControllerFormat(num):
     if num >= 0 and num < 64:
         output = int(numpy.binary_repr(num,7),2)
         return output
-    if num > 63  and num < 8192:
+    if num >= 64 and num < 8192:
         output = int(numpy.binary_repr(num,14),2)
         return output
-    if num > 8191  and num < 1048576:
+    if num >= 8192 and num < 1048576:
         output = int(numpy.binary_repr(num,21),2)
         return output
-    if num > 1048575:
+    if num >= 1048576 and num < 134217728:
         output = int(numpy.binary_repr(num,28),2)
         return output
-    if num > 134217727:
+    if num >= 134217728:
         print('error, input data out of range')
         return
 
-    if num < 0 and num > -65:
+    if num < 0 and num >= -64:
         output = int(numpy.binary_repr(num,7),2)
         return output
-    if num <-64  and num > -8193:
+    if num <-64 and num >= -8192:
         output = int(numpy.binary_repr(num,14),2)
         return output
-    if num <-8192  and num > -1048577:
+    if num <-8192 and num >= -1048576:
         output = int(numpy.binary_repr(num,21),2)
         return output
-    if num <-1048576:
+    if num <-1048576 and num >= -134217728:
         output = int(numpy.binary_repr(num,28),2)
         return output
     if num <-134217728:
@@ -311,6 +311,8 @@ ballscrew_lead = 5 #mm
 #define variable for linear speed in m/min.
 #default value is 1.0 m/min
 linear_speed = 1.0
+#stage1_rpm = get_rpm(linear_speed,roller_diameter,stage1_gear_ratio)
+#stage2_rpm = get_rpm(linear_speed,roller_diameter,stage2_gear_ratio)
 
 
 
@@ -328,7 +330,24 @@ def get_rpm(s,D,R):
     rpm = R*s*1000/(math.pi*D*25.4)
     #print("Linear Speed is",s,"m/min")
     #print("RPM of motor is",round(rpm),"rpm")
-    return round(rpm)
+
+    return int(round(rpm))
+
+def set_linear_speed():
+    global linear_speed
+    global menu_items
+    a = input("Input linear process speed of profile (m/min) (+'ve for forward through the machine, -'ve for reverse):")
+    linear_speed = float(a)
+    print("linear_speed",linear_speed)
+    menu_items = generate_menu_items()
+    return
+
+def generate_menu_items():
+    a = {"0":[0,"Stop All Rollers",stop_all],
+                  "1":[1,"Start Stage 1 Rollers",stage1_start,get_rpm(linear_speed,roller_diameter,stage1_gear_ratio)],
+                  "2":[2,"Start Stage 2 Rollers",stage2_start,get_rpm(linear_speed,roller_diameter,stage2_gear_ratio)],
+                  "3":[3,"Set Linear Speed (m/min)",set_linear_speed]}
+    return a
 
 def stage1_start(rpm):
     '''
@@ -407,6 +426,8 @@ def max_motor_acceleration(k,gear_ratio):
     return maxacceleration
 
 
+
+
 # High Level Functions [End] -------------------------------------------------------
 
 
@@ -417,9 +438,7 @@ def max_motor_acceleration(k,gear_ratio):
 #The first item in the Dictionary list is the number of the command
 #The second item in the list is the function name without parenthesis ()
 #The third, fourth, fifth, and so on items in the list should be the arguments passed into the function
-menu_items = {"0":[0,"Stop All Rollers",stop_all],
-              "1":[1,"Start Stage 1 Rollers",stage1_start,get_rpm(linear_speed,roller_diameter,stage1_gear_ratio)],
-              "2":[2,"Start Stage 2 Rollers",stage2_start,get_rpm(linear_speed,roller_diameter,stage2_gear_ratio)]}
+menu_items = generate_menu_items()
 
 #create a list of the keys so that we can validate if the input is valid
 menu_keys = menu_items.keys()
@@ -439,7 +458,7 @@ def hmi_display(menu_items):
     :return:
     '''
 
-    clear()
+    #clear()
     print("Linear Speed (of profile)\t",linear_speed,"m/min")
     print("STAGE 1 RPM\t\t\t",get_rpm(linear_speed,roller_diameter,stage1_gear_ratio),"rpm")
     print("STAGE 2 RPM\t\t\t",get_rpm(linear_speed,roller_diameter,stage2_gear_ratio),"rpm")
