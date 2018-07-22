@@ -120,10 +120,7 @@ def binary_display_byte(byte):
     # using the [2:] reference we can just show what we want to see, 0's and 1's.
 
     return binary_number
-
-
 # ------------------------------------------------------------------------------------------------
-
 
 def DriveByte(a): #formats start byte properly pg 52
     #if this returns nothing then there is an error
@@ -172,67 +169,58 @@ def int2ControllerFormat(num):
         print('error, input data out of range')
         return
 
-def OutData(data): #returns a list containing properly formatted integers to transmit data
-    # input data must be a large integer we want to transmit
-    #In C data is sent out without adjusting for negative numbers so make sure
-    #python is representing data the same as C represents an integer
-    #Incoming data is interpreted using Cal_SignValue or Cal_Value, both 
-    #functions do the same thing.
-    BinData = bin(int2ControllerFormat(data))[2:] #converts input integer to binary string and chops off 0b
-    length = len(BinData)   #number of binary digits in data
-    b = divmod(length,7)
-    outlist=list()
-    
-    if (length == 7 or length == 14 or length == 21 or length == 28) and BinData[0] == '1':  #number is negative
-       numbyte=int(b[0]) # number of bytes required to send data 
-       for i in range(0,numbyte):
-           start = b[1] + (i) * 7
-           end = b[1] +(i+1) * 7
-           outlist.append(int(BinData[start:end],2) + 0x80)
-       return outlist
-
-    else:
-       numbyte=int(b[0]+1) # number of bytes required to send data
-    
-    if numbyte > 4:
-        print('Error: data too large to be sent')
+def OutData(num): #returns a tuple containing properly formatted integers to transmit data
+    #import numpy
+    #make sure 'import numpy' is at top of file
+    if num >= 0 and num < 64:
+        a = (int(numpy.binary_repr(num,7),2) + 0x80,)
+        return a
+    if num > 63  and num < 8192:
+        a = int(numpy.binary_repr(num,14)[0:7],2) + 0x80
+        b = int(numpy.binary_repr(num,14)[7:14],2) + 0x80
+        output = (a,b)
+        return output
+    if num > 8191  and num < 1048576:
+        a = int(numpy.binary_repr(num,14)[0:7],2) + 0x80
+        b = int(numpy.binary_repr(num,14)[7:14],2) + 0x80
+        c = int(numpy.binary_repr(num,14)[14:21],2) + 0x80
+        output = (a,b,c)
+        return output
+    if num > 134217727:
+        print('error, input data out of range')
         return
-        
-    if b[1] != 0: #append partial start byte to the beginning of BinData
-        outlist.append(int(BinData[0:b[1]],2) + 0x80)  
-        for i in range(1,numbyte):
-            start = b[1] + (i-1) * 7
-            end   = b[1] + (i) * 7
-            outlist.append(int(BinData[start:end],2) + 0x80)
-        return outlist
-        
-    if b[1] == 0:
-        outlist.append(0x80) #need a leading blank byte see example 3 pg 62
-        for i in range(0,numbyte-1):
-            start = b[1] + (i) * 7
-            end = b[1] +(i+1) * 7
-            outlist.append(int(BinData[start:end],2) + 0x80)
-        return outlist
+    if num > 1048575:
+        a = int(numpy.binary_repr(num,14)[0:7],2) + 0x80
+        b = int(numpy.binary_repr(num,14)[7:14],2) + 0x80
+        c = int(numpy.binary_repr(num,14)[14:21],2) + 0x80
+        d = int(numpy.binary_repr(num,14)[21:28],2) + 0x80
+        output = (a,b,c,d)
+        return output
 
-def OutputSize(data): #notice how function is very similar to OutData, 
-    BinData = bin(int2ControllerFormat(data))[2:] #converts input integer to binary string and chops off 0b
-    length = len(BinData)   #number of binary digits in data
-
-    #figure out how many bytes are in the data
-    b = divmod(length,7)
-
-    if (length == 7 or length == 14 or length == 21 or length == 28) and BinData[0] == '1':  #number is negative
-       numbyte=int(b[0]) # number of bytes required to send data 
-    else:
-       numbyte=int(b[0]+1) # number of bytes required to send data
-
-    # check if the data meets the criteria of being less than equal to 4 packets.
-    # If it meets the criteria return the data, if not then return an error.
-    if numbyte > 4:
-        print('Error: data too large to be sent')
+    if num < 0 and num > -65:
+        a = (int(numpy.binary_repr(num,7),2) + 0x80,)
+        return a
+    if num <-64  and num > -8193:
+        a = int(numpy.binary_repr(num,14)[0:7],2) + 0x80
+        b = int(numpy.binary_repr(num,14)[7:14],2) + 0x80
+        output = (a,b)
+        return output
+    if num <-8192  and num > -1048577:
+        a = int(numpy.binary_repr(num,14)[0:7],2) + 0x80
+        b = int(numpy.binary_repr(num,14)[7:14],2) + 0x80
+        c = int(numpy.binary_repr(num,14)[14:21],2) + 0x80
+        output = (a,b,c)
+        return output
+    if num <-134217728:
+        print('error, input data out of range')
         return
-    else:
-        return numbyte
+    if num <-1048576:
+        a = int(numpy.binary_repr(num,14)[0:7],2) + 0x80
+        b = int(numpy.binary_repr(num,14)[7:14],2) + 0x80
+        c = int(numpy.binary_repr(num,14)[14:21],2) + 0x80
+        d = int(numpy.binary_repr(num,14)[21:28],2) + 0x80
+        output = (a,b,c,d)
+        return output
     
 def CheckSum(BnA, BnMinus1A, DatalistA): # see page 55
     numData = len(DatalistA) #number of bytes used to transmit data   
@@ -246,18 +234,19 @@ def CheckSum(BnA, BnMinus1A, DatalistA): # see page 55
 def Send(driveID, ToDo, packet):
     #packet should be integer not hex
     #Send packet to controller
-    OutLen = OutputSize(packet) #of data bits see page 54 for how to set
+    DataList = OutData(packet) 
+    OutLen = len(DataList) #DataList is a tuple #of data bits see page 54 for how to set
     OutArray = bytearray(OutLen+3) # data to send to controller
     Bn = DriveByte(driveID)
-    BnMinus1 = FunctionAndLength(OutLen, ToDo)
-    DataList = OutData(packet) 
+    BnMinus1 = FunctionAndLength(OutLen, ToDo)  
     B0 = CheckSum(Bn, BnMinus1, DataList)
     #assign variables to output byte array
     OutArray[0] = Bn
     OutArray[1] = BnMinus1
-    for i in range(2,OutLen+2):
-        a = DataList[i-2]
-        OutArray[i] = a
+    a=2
+    for i in DataList:
+        OutArray[a] = i
+        a=a+1
     OutArray[OutLen+2] = B0
     #ser.write(OutArray)
     #ser.flush()
@@ -279,7 +268,7 @@ def Send(driveID, ToDo, packet):
 #set the varibles below to set the data that will be sent.
 driveID = 0x08
 FunctionCode = Turn_ConstSpeed #packet function code see page 53. Function Code
-data = -121 #data to be sent. Data can be max speed, gear number, etc.
+data = -75 #data to be sent. Data can be max speed, gear number, etc.
 
 ToController = Send(driveID, FunctionCode, data)
 #everything works, packets are sent properly, negative numbers may need to 
