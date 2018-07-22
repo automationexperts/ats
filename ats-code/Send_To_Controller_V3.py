@@ -134,41 +134,6 @@ def FunctionAndLength(length,code): #formats 2nd byte pg53
     output = 0x80 + l + code #0x80 adds 1000 0000 to the number
     return output
 
-def int2ControllerFormat(num):
-    #import numpy
-    #make sure 'import numpy' is at top of file
-    if num > 0 and num < 64:
-        output = int(numpy.binary_repr(num,7),2)
-        return output
-    if num > 63  and num < 8192:
-        output = int(numpy.binary_repr(num,14),2)
-        return output
-    if num > 8191  and num < 1048576:
-        output = int(numpy.binary_repr(num,21),2)
-        return output
-    if num > 1048575:
-        output = int(numpy.binary_repr(num,28),2)
-        return output
-    if num > 134217727:
-        print('error, input data out of range')
-        return
-
-    if num < 0 and num > -65:
-        output = int(numpy.binary_repr(num,7),2)
-        return output
-    if num <-64  and num > -8193:
-        output = int(numpy.binary_repr(num,14),2)
-        return output
-    if num <-8192  and num > -1048577:
-        output = int(numpy.binary_repr(num,21),2)
-        return output
-    if num <-1048576:
-        output = int(numpy.binary_repr(num,28),2)
-        return output
-    if num <-134217728:
-        print('error, input data out of range')
-        return
-
 def OutData(num): #returns a tuple containing properly formatted integers to transmit data
     #import numpy
     #make sure 'import numpy' is at top of file
