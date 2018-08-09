@@ -249,9 +249,10 @@ def Send(driveID, ToDo, packet):
     ser.flush()                     #uncomment me to run on pi
     
     #display the output
-    print("Send() Output")
+    print("Displaying Output of Send()")
     for a in OutArray:
         print(binary_display_int(a))
+    print("\n")
     
     return OutArray
 
@@ -303,6 +304,7 @@ k_stage2_mSpeed = 50
 k_radius_mSpeed = 50
 k_theta_mSpeed = 50
 
+last_action = "N/A"
 
 
 # INITIALIZATION ---------------------------- [END]
@@ -328,10 +330,15 @@ def get_rpm(s,D,R):
 def set_linear_speed():
     global linear_speed
     global menu_items
-    a = input("Input linear process speed of profile (m/min) (+'ve for forward through the machine, -'ve for reverse):")
+    print("\n+'ve for forward through the machine, -'ve for reverse")
+    a = input("Input linear process speed of profile (m/min): ")
     linear_speed = float(a)
-    print("linear_speed",linear_speed)
     menu_items = generate_menu_items()
+    
+    #set last_action message on hmi screen
+    global last_action
+    last_action = "Linear Speed Set to: " + str(linear_speed) + " m/min"
+    
     return
 
 def generate_menu_items():
@@ -351,7 +358,11 @@ def stage1_start(rpm):
 
     #Send(stage1_drive_id,Turn_ConstSpeed,rpm)
     Send(general_drive_id, Turn_ConstSpeed, rpm)
-    print("Stage 1 Started at",rpm,"rpm")
+    
+    #set last_action message on hmi screen
+    global last_action
+    last_action = "Stage 1 Started at " + str(rpm) + " rpm"
+    
     return
 
 def stage2_start(rpm):
@@ -362,7 +373,11 @@ def stage2_start(rpm):
 
     #Send(stage2_drive_id,Turn_ConstSpeed,rpm)
     Send(general_drive_id, Turn_ConstSpeed, rpm)
-    print("Stage 2 Started at",rpm,"rpm")
+    
+    #set last_action message on hmi screen
+    global last_action
+    last_action = "Stage 2 Started at " + str(rpm) + " rpm"
+    
     return
 
 def stop_all():
@@ -375,7 +390,10 @@ def stop_all():
     Send(stage2_drive_id,Turn_ConstSpeed,0)
     Send(radius_drive_id,Turn_ConstSpeed,0)
     Send(angle_drive_id,Turn_ConstSpeed,0)
-    print("All drives stopped")
+    
+    #set last_action message on hmi screen
+    global last_action
+    last_action = "All drives stopped."
     return
 
 def move_Raxis():
@@ -403,6 +421,10 @@ def move_Raxis():
     # how many steps in a full revolution???
     # n = steps in a full revolution
     # n = 16384/Gear_Ratio or n = 4*Gear_Num
+    
+    #set last_action message on hmi screen
+    global last_action
+    last_action = "R-axis moved by: " + str(d) + " mm, " + str(send_steps/spr) + " servo revs, " + str(send_steps) + " steps"
 
     return
 
@@ -433,6 +455,10 @@ def move_Taxis():
     # how many steps in a full revolution???
     # n = steps in a full revolution
     # n = 16384/Gear_Ratio or n = 4*Gear_Num
+    
+    #set last_action message on hmi screen
+    global last_action
+    last_action = "T-axis moved by: " + str(theta) + " degrees, " + str(send_steps/spr) + " servo revs, " + str(send_steps) + " steps"
 
     return
 
@@ -500,12 +526,34 @@ def hmi_display(menu_items):
     :return:
     '''
 
-    #clear()
-    print("Linear Speed (of profile)\t",linear_speed,"m/min")
-    print("STAGE 1 RPM\t\t\t",get_rpm(linear_speed,roller_diameter,stage1_gear_ratio),"rpm")
-    print("STAGE 2 RPM\t\t\t",get_rpm(linear_speed,roller_diameter,stage2_gear_ratio),"rpm")
-    print("R-axis Maximum Speed\t\t",max_motor_speed(k_radius_mSpeed,gear_ratio(R_gear_num)),"rpm")
-    print("R-axis Maximum Acceleration\t",max_motor_acceleration(k_radius_mAcc,gear_ratio(R_gear_num)),"rpm/s")
+    clear()     #comment out when debugging so the screen doesn't get cleared
+    
+    print("----------------------------------------------------")
+    print("ADVANCED TECHNOLOGY STRUCTURES PVC PROFILE ASSEMBLER")
+    print("----------------------------------------------------\n")
+
+    
+    print("Linear Speed (of profile) Set Point\t",linear_speed,"m/min")
+    print("STAGE 1 RPM Set Point\t\t\t",get_rpm(linear_speed,roller_diameter,stage1_gear_ratio),"rpm")
+    print("STAGE 2 RPM Set Point\t\t\t",get_rpm(linear_speed,roller_diameter,stage2_gear_ratio),"rpm")
+    print("\n")
+    
+    print("Stage 1 Maximum Acceleration\t\t",max_motor_acceleration(k_stage1_mAcc,gear_ratio(stage1_gear_num)),"rpm/s")
+    print("Stage 1 Maximum Speed\t\t\t",max_motor_speed(k_stage1_mSpeed,gear_ratio(stage1_gear_num)),"rpm")
+    print("\n")
+    
+    print("Stage 2 Maximum Acceleration\t\t",max_motor_acceleration(k_stage2_mAcc,gear_ratio(stage2_gear_num)),"rpm/s")
+    print("Stage 2 Maximum Speed\t\t\t",max_motor_speed(k_stage2_mSpeed,gear_ratio(stage2_gear_num)),"rpm")
+    print("\n")
+    
+    print("R-axis Maximum Acceleration\t\t",max_motor_acceleration(k_radius_mAcc,gear_ratio(R_gear_num)),"rpm/s")
+    print("R-axis Maximum Speed\t\t\t",max_motor_speed(k_radius_mSpeed,gear_ratio(R_gear_num)),"rpm")
+    print("\n")
+    
+    print("T-axis Maximum Acceleration\t\t",max_motor_acceleration(k_theta_mAcc,gear_ratio(T_gear_num)),"rpm/s")
+    print("T-axis Maximum Speed\t\t\t",max_motor_speed(k_theta_mSpeed,gear_ratio(T_gear_num)),"rpm")
+    print("\n")
+    print("Last Action:",last_action)
     print("\n")
     print("Command Options")
 
@@ -575,29 +623,26 @@ driveID = general_drive_id
 FunctionCode = Read_FoldNumber #packet function code see page 53. Function Code
 data = 1 #data to be sent. Data can be max speed, gear number, etc.
 
-#test code
-print("OutData")
-print(OutData(16384))
-
-
-
 ToController = Send(driveID, FunctionCode, data)
 #everything works, packets are sent properly, negative numbers may need to 
 #be properly formatted
 
 #Sends Binary output to console for debugging purposes
-print(ToController)
-for a in ToController:
-    print(binary_display_int(a))
+#print(ToController)
+#for a in ToController:
+#    print(binary_display_int(a))
 
 #read 100 characters and store it in str msg
-print("message read")
+print("Data Received:")
 msg = ser.read(1000)                    #uncomment me to run on pi
 
 #print the string msg
 print(msg)                              #uncomment me to run on pi
+print("\n")
 
 # End of Send code ---------------------------------------------------------
+
+time.sleep(5)
 
 # Main Program [START] -----------------------------------------------------
 
