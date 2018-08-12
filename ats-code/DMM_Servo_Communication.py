@@ -130,7 +130,8 @@ def InitializeCommunication():
     except:
         print('Error: unable to run on windows OS')
         a='0'
-        
+    print(a)
+    
     if a == 'raspberrypi':
         IsPi = True
         import serial
@@ -273,7 +274,6 @@ def Send(driveID, ToDo, packet):
 
 def Obtain(): #read from serial and pull out relevent info
     msg = ser.read(100)
-    #msg = a
     
     #Check for errors in transmission
     if ((sum(msg)-msg[-1])%128)+128 != msg[-1]:
