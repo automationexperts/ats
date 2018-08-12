@@ -271,7 +271,7 @@ def Send(driveID, ToDo, packet):
         print('Error: code not running on Pi or InitializeCommunication() not called')
     return OutArray
 
-def Obtain(a): #read from serial and pull out relevent info
+def Obtain(): #read from serial and pull out relevent info
     msg = ser.read(100)
     #msg = a
     
