@@ -30,7 +30,7 @@ Turn_ConstSpeed =       0x0a
 Square_Wave =           0x0b
 Sin_Wave =              0x0c
 SS_Frequency =          0x0d
-Read_PosCmd32 =	        0x0e
+Read_PosCmd32 =	      0x0e
 Set_MainGain =          0x10
 Set_SpeedGain =         0x11
 Set_IntGain =           0x12
@@ -345,6 +345,8 @@ def set_linear_speed():
 
 def set_radius():
     '''
+    Sets the radius of curvature
+    
     '''
     
     units = None
@@ -492,6 +494,17 @@ def move_Taxis():
 
     return
 
+def move_Curve():
+    '''
+    '''
+    
+    Send(general_drive_id,Make_LinearLine,1000)
+    Send(general_drive_id,Make_LinearLine,2000)
+    Send(general_drive_id,Make_LinearLine,0)
+    Send(general_drive_id,Make_LinearLine,1)
+    
+    return
+
 def gear_ratio(gear_num):
     return 4096/gear_num
 
@@ -522,6 +535,8 @@ def max_motor_acceleration(k,gear_ratio):
 
     maxacceleration = k*635.78*gear_ratio
     return maxacceleration
+
+
 
 
 
