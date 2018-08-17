@@ -16,9 +16,17 @@ ID_Z = 7 # fake drive ID of z axis
 General_ID = 127 # general drive ID used to address all drives
 
 Make_LinearLine = 0x02  #function code for linear line
+Make_CircularArc = 0x04
 
 com.Send(ID_X, Make_LinearLine, 100)
 com.Send(ID_Y, Make_LinearLine, 100)
 com.Send(ID_Z, Make_LinearLine, 100) #z is fake
 com.Send(General_ID, Make_LinearLine, 5) #feedrate
 
+com.Send(ID_X, Make_CircularArc, -100)
+com.Send(ID_Y, Make_CircularArc, 0)
+com.Send(ID_Z, Make_CircularArc, 0)
+com.Send(ID_X, Make_CircularArc, 100)
+com.Send(ID_Y, Make_CircularArc, 0)
+com.Send(ID_Z, Make_CircularArc, 0)
+com.Send(General_ID, Make_CircularArc,4) #may also be a negative 2 byte data bit to do CCW directions.
