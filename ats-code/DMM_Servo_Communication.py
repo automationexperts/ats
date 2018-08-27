@@ -698,8 +698,10 @@ class Position():
     def setabspos(self,position):
         GoAbsPosition(self.driveID, position)
         self._AbsPos = position
+    def delabspos(self):
+        print('unable to delete absolute position')
         
-    AbsPos = property(getabspos, setabspos,fdel=None,'Absolute position of position servo')
+    AbsPos = property(getabspos, setabspos, delabspos, 'Absolute position of position servo')
     
     def RefreshMainGain(self): #asks servo controller for gain value
         self._MainGain = ReadMainGain(self.driveID)
