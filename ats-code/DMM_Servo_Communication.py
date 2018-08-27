@@ -302,6 +302,12 @@ def Send(driveID, ToDo, packet):
 def Obtain(): #read from serial and pull out relevent info
     msg = ser.read(100)
     
+    #check that something was sent
+    if len(msg) == 0:
+        #no mesage detected so check again
+        output = (False,'asdf','asdf','asdf')
+        return output
+        
     #Check for errors in transmission
     if ((sum(msg)-msg[-1])%128)+128 != msg[-1]:
         output = (False,'asdf','asdf','asdf')
@@ -698,8 +704,9 @@ class Position():
     def setabspos(self,position):
         GoAbsPosition(self.driveID, position)
         self._AbsPos = position
+    
     def delabspos(self):
-        print('unable to delete absolute position')
+        print('Error: unable to delete absolute position')
         
     AbsPos = property(getabspos, setabspos, delabspos, 'Absolute position of position servo')
     
@@ -717,7 +724,10 @@ class Position():
         self._MainGain = SetMainGain(self.driveID, gain)
         return self._MainGain
     
-    MainGain = property(getmaingain, setmaingain, fdel=None, 'Main Gain')
+    def delmaingain(self):
+        print('Error: unable to delete main gain')
+    
+    MainGain = property(getmaingain, setmaingain, delmaingain, 'Main Gain')
     #if main gain function works expand for other variables
     
     #2018-07-15 23:53
