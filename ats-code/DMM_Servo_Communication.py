@@ -2,9 +2,36 @@
 """
 Created on Thu Jun 21 11:55:13 2018
 @author: henra
+container for all low level functions required to work with the DMM servo drives
+Using this library most functionality can be called with drive ID and appropriate data.
+
+Useful function list
+InitializeCommunication()    Must be called before initializing communication with servos
+SetMainGain(driveID, gain)  
+ReadMainGain(driveID) 
+SetSpeedGain(driveID, gain)  
+ReadSpeedGain(driveID)  
+SetIntGain(driveID, gain) 
+ReadIntGain(driveID) 
+SetTrqCons(driveID, const) 
+ReadTrqCons(driveID) 
+SetHighSpeed(driveID, MaxSpeed)  
+ReadHighSpeed(driveID) 
+SetHighAccel(driveID, MaxAccel)    
+ReadHighAccel(driveID)
+SetPos_OnRange(driveID, OnRange)  
+ReadPos_OnRange(driveID)  
+SetPos_FoldNumber(driveID, gear)   
+ReadPos_FoldNumber(driveID)
+ConstSpeed(driveID, speed)   
+SetDriveConfig(driveID, mode, encoder, servo, drive)    
+ReadDriveConfig(driveID)  
+ReadDriveStatus(driveID)  
+GoRelativePosition(driveID, position) 
+GoAbsPosition(driveID, position) 
 """
 
-import numpy #unable to install numpy to the raspberry pi
+import numpy 
 import os
 
 #Function (Sent by host)
@@ -290,7 +317,7 @@ def Obtain(): #read from serial and pull out relevent info
     
     # check function code to see if data should be unsigned
     UnsignedFunctionCodes = {Is_MainGain, Is_SpeedGain, Is_IntGain, Is_TrqCons, Is_HighSpeed,
-                             Is_HighAccel, Is_Driver_ID, Is_Pos_OnRange, Is_Status, Is_Config}
+                             Is_HighAccel, Is_Driver_ID, Is_Pos_OnRange, Is_Status, Is_Config, Is_FoldNumber}
     if function in UnsignedFunctionCodes:
         output = (True,servo,function,total)
         return output        
@@ -312,10 +339,381 @@ def Obtain(): #read from serial and pull out relevent info
     else:
         output = (True,servo,function,total)
     return output
+
+# ------------------------ convenience functions ------------------------
+# include all function codes on pg 53
+    
+def SetMainGain(driveID, gain):
+    '''
+    :param driveID: servo controller identification number
+    :param gain: gain value to send to driveID
+    '''
+    
+    Send(driveID, Set_MainGain, gain)
+    output = ReadMainGain(driveID)
+    return output
+ 
+def ReadMainGain(driveID):
+    '''
+    :param driveID: servo controller identification number
+    :return: Gain parameter for input driveID
+    '''
+    i=0
+    var = (False, 'asdf', 'asdf', 'asdf')
+    while var[0] == False:
+        Send(driveID, Read_MainGain, 0x5A)
+        var = Obtain()
+        i = i+1
+        if i > 5:
+            print('Error: variable not sent, set, or recieved properly, transmission error, checksum is not correct')
+            break
+    return var[3]
+
+def SetSpeedGain(driveID, gain):
+    '''
+    :param driveID: servo controller identification number
+    :param gain: speed gain value to send to driveID
+    '''
+    
+    Send(driveID, Set_SpeedGain, gain)
+    output = ReadSpeedGain(driveID)
+    return output
+
+def ReadSpeedGain(driveID):
+    '''
+    :param driveID: servo controller identification number
+    :return: speed Gain parameter for input driveID
+    '''
+    i=0
+    var = (False, 'asdf', 'asdf', 'asdf')
+    while var[0] == False:
+        Send(driveID, Read_SpeedGain, 0x5A)
+        var = Obtain()
+        i = i+1
+        if i > 5:
+            print('Error: variable not sent, set, or recieved properly, transmission error, checksum is not correct')
+            break
+    return var[3]
+
+def SetIntGain(driveID, gain):
+    '''
+    :param driveID: servo controller identification number
+    :param gain: int gain value to send to driveID
+    '''
+    
+    Send(driveID, Set_IntGain, gain)
+    output = ReadIntGain(driveID)
+    return output
+  
+def ReadIntGain(driveID):
+    '''
+    :param driveID: servo controller identification number
+    :return: int Gain parameter for input driveID
+    '''
+    i=0
+    var = (False, 'asdf', 'asdf', 'asdf')
+    while var[0] == False:
+        Send(driveID, Read_IntGain, 0x5A)
+        var = Obtain()
+        i = i+1
+        if i > 5:
+            print('Error: variable not sent, set, or recieved properly, transmission error, checksum is not correct')
+            break
+    return var[3] 
+
+def SetTrqCons(driveID, const):
+    '''
+    :param driveID: servo controller identification number
+    :param const: torque const value to send to driveID
+    '''
+    
+    Send(driveID, Set_TrqCons, const)
+    output = ReadTrqCons(driveID)
+    return output
+  
+def ReadTrqCons(driveID):
+    '''
+    :param driveID: servo controller identification number
+    :return: torque const value to send to driveID
+    '''
+    i=0
+    var = (False, 'asdf', 'asdf', 'asdf')
+    while var[0] == False:
+        Send(driveID, Read_TrqCons, 0x5A)
+        var = Obtain()
+        i = i+1
+        if i > 5:
+            print('Error: variable not sent, set, or recieved properly, transmission error, checksum is not correct')
+            break
+    return var[3] 
+
+def SetHighSpeed(driveID, MaxSpeed):
+    '''
+    :param driveID: servo controller identification number
+    :param MaxSpeed: MaxSpeed value to send to driveID
+    '''
+    
+    Send(driveID, Set_HighSpeed, MaxSpeed)
+    output = ReadHighSpeed(driveID)
+    return output
+ 
+def ReadHighSpeed(driveID):
+    '''
+    :param driveID: servo controller identification number
+    :return: Gain parameter for input driveID
+    '''
+    i=0
+    var = (False, 'asdf', 'asdf', 'asdf')
+    while var[0] == False:
+        Send(driveID, Read_HighSpeed, 0x5A)
+        var = Obtain()
+        i = i+1
+        if i > 5:
+            print('Error: variable not sent, set, or recieved properly, transmission error, checksum is not correct')
+            break
+    return var[3]
+
+def SetHighAccel(driveID, MaxAccel):
+    '''
+    :param driveID: servo controller identification number
+    :param MaxAccel: Maximum acceleration value to send to driveID
+    '''
+    
+    Send(driveID, Set_HighAccel, MaxAccel)
+    output = ReadHighAccel(driveID)
+    return output
+
+def ReadHighAccel(driveID):
+    '''
+    :param driveID: servo controller identification number
+    :return: Gain parameter for input driveID
+    '''
+    i=0
+    var = (False, 'asdf', 'asdf', 'asdf')
+    while var[0] == False:
+        Send(driveID, Read_HighAccel, 0x5A)
+        var = Obtain()
+        i = i+1
+        if i > 5:
+            print('Error: variable not sent, set, or recieved properly, transmission error, checksum is not correct')
+            break
+    return var[3]
+
+def SetPos_OnRange(driveID, OnRange):
+    '''
+    :param driveID: servo controller identification number
+    :param OnRange: position range value to send to driveID see page 44
+    '''
+    
+    Send(driveID, Set_Pos_OnRange, OnRange)
+    output = ReadPos_OnRange(driveID)
+    return output
+
+def ReadPos_OnRange(driveID):
+    '''
+    :param driveID: servo controller identification number
+    :return: position range parameter for input driveID
+    '''
+    i=0
+    var = (False, 'asdf', 'asdf', 'asdf')
+    while var[0] == False:
+        Send(driveID, Read_Pos_OnRange, 0x5A)
+        var = Obtain()
+        i = i+1
+        if i > 5:
+            print('Error: variable not sent, set, or recieved properly, transmission error, checksum is not correct')
+            break
+    return var[3]
+
+def SetPos_FoldNumber(driveID, gear):
+    '''
+    :param driveID: servo controller identification number
+    :param gear: set gear number value to send to driveID see page 44
+    '''
+    if gear < 500 or gear > 16384:
+        print('Error, gear number is out of range, packet sent anyway')
+    Send(driveID, Set_FoldNumber, gear)
+    output = ReadPos_FoldNumber(driveID)
+    return output
+
+def ReadPos_FoldNumber(driveID):
+    '''
+    :param driveID: servo controller identification number
+    :return: gear number for input driveID
+    '''
+    i=0
+    var = (False, 'asdf', 'asdf', 'asdf')
+    while var[0] == False:
+        Send(driveID, Read_FoldNumber, 0x5A)
+        var = Obtain()
+        i = i+1
+        if i > 5:
+            print('Error: variable not sent, set, or recieved properly, transmission error, checksum is not correct')
+            break
+    return var[3]
+
+def ConstSpeed(driveID, speed):
+    '''
+    :param driveID: servo controller identification number
+    :speed: RPM the servo is desired to turn at
+    '''
+    Send(driveID, Turn_ConstSpeed, speed)
+
+def SetDriveConfig(driveID, mode, encoder, servo, drive):
+    '''
+    :param driveID: servo controller identification number
+    :see page 56 for other parameters
+    '''
+    if drive == False:
+        drive=0
+    if drive == True:
+        drive=1
+    if encoder == False:
+        encoder=0
+    if encoder == True:
+        encoder=1    
+    data = 80 + drive * 32 + servo * 8 + encoder * 4 + mode   
+    Send(driveID, Set_Driver_Config, data)
+
+def ReadDriveConfig(driveID):
+    '''
+    :param driveID: servo controller identification number
+    :return: integer tuple representing:communications mode, encoder setting, servo setting, and freerunning in that order
+    :see page 56 for more details
+    '''
+    i=0
+    var = (False, 'asdf', 'asdf', 'asdf')
+    while var[0] == False:
+        Send(driveID, Read_Driver_Config, 0x5A)
+        var = Obtain()
+        i = i+1
+        if i > 5:
+            print('Error: variable not sent, set, or recieved properly, transmission error, checksum is not correct')
+            break
+    data = numpy.binary_repr(var[3],7) #see page 56
+    mode = int(data[5:7],2)    # 0-RS232, 1-CW,CCW, 2-Pulse, 3-Analog
+    encoder = int(data[4:5],2) # 0-relative mode, 1-absolute mode
+    servo = int(data[2:4],2)   # 0-position, 1-speed, 2-torque
+    drive = int(data[1:2,2])   # 0-servo hard, 1-servo spin freely
+    output = (mode, encoder, servo, drive)
+    return output
+  
+def ReadDriveStatus(driveID):
+    '''
+    :param driveID: servo controller identification number
+    :return: integer tuple representing: onPosition, servo, alarm, motion in that order
+    :see page 56 for more details
+    '''
+    i=0
+    var = (False, 'asdf', 'asdf', 'asdf')
+    while var[0] == False:
+        Send(driveID, Read_Driver_Status, 0x5A)
+        var = Obtain()
+        i = i+1
+        if i > 5:
+            print('Error: variable not sent, set, or recieved properly, transmission error, checksum is not correct')
+            break
+    data = numpy.binary_repr(var[3],7) #see page 56
+    onPosition = int(data[6:7],2)  # 0-motor on position, 1-motor moving
+    servo = int(data[5:6],2)       # 0-motor servo, 1-motor free
+    alarm = int(data[2:5],2)       # 0-no alarm, 1-motor lost phase alarm, 2-motor current alarm, 3-motor overheat or overpower alarm, 4- error for CRC error check
+    motion = int(data[1:2,2])      # 0- S curve, linear, circular motion completed, 1- Motor in middle of move
+    output = (onPosition, servo, alarm, motion)
+    return output
+
+def GoRelativePosition(driveID, position):
+    '''
+    :param driveID: servo controller identification number
+    :param position: position relative to current one to send drive to
+    '''
+    Send(driveID, Go_Relative_Pos, position)
+      
+def GoAbsPosition(driveID, position):
+    '''
+    :param driveID: servo controller identification number
+    :param position: absolute position to send drive to
+    '''
+    Send(driveID, Go_Absolute_Pos, position)   
+    
+def AbsPosRead(driveID):
+    '''
+    :param driveID: servo controller identification number
+    : ready absolute position
+    '''
+    i=0
+    var = (False, 'asdf', 'asdf', 'asdf')
+    while var[0] == False:
+        Send(driveID, Read_PosCmd32, 0x5A)
+        var = Obtain()
+        i = i+1
+        if i > 5:
+            print('Error: variable not sent, set, or recieved properly, transmission error, checksum is not correct')
+            break
+    return var[3]
+    
+    
+class Position():
+    def __init__(self,driveID):
+        # see if the serial port is initialized and if it isn't initialize it
+        try:
+            ser
+        except NameError:  #serial port isn't open so open it
+            InitializeCommunication() # function to open serial port
+                   
+        #getting saved values from controller
+        self._DriveID = driveID
+        self._MainGain = ReadMainGain(driveID)
+        self._SpeedGain = ReadSpeedGain(driveID)
+        self._IntGain = ReadIntGain(driveID)
+        self._HighSpeed = ReadHighSpeed(driveID)
+        self._HighAccel = ReadHighAccel(driveID)
+        self._Pos_OnRange = ReadPos_OnRange(driveID)
+        self._GearNum = ReadPos_FoldNumber(driveID)
+        self._AbsPos = AbsPosRead(driveID)
         
-# ------------------------ Script for testing --------------------
-#IsPi = False
-#msg = Send(radius_drive_id,Is_Driver_ID,75)
-#print(msg)
-#a=Obtain(msg)
-#print(a)
+    def SetOrigin(self): #sets current position to zero
+        Send(self.driveID,Set_Origin,0x5e)
+    
+    def GoToRel(self,position): #go to a position specified relative to the current one
+        GoRelativePosition(self.driveID, position)
+        
+    def RefreshPos(self): #refreshes the absolute position attributed by reading the servo
+        self._AbsPos = AbsPosRead(self.driveID)
+        return self._AbsPos
+    
+    def Stopped(self): #function that can be used to poll motor to determine if it is moving
+        var = (False, 'asdf', 'asdf', 'asdf')
+        Send(self.driveID, Read_Driver_Status, 0x5A)
+        var = Obtain()
+        data = numpy.binary_repr(var[3],7) #see page 56
+        onPosition = int(data[6:7],2)  # 0-motor on position, 1-motor moving
+        if onPosition == 0:
+            return True
+        if onPosition == 1:
+            return False
+             
+    def getabspos(self): #calls the absolute position variable as is without checking
+        return self._AbsPos
+    
+    def setabspos(self,position):
+        GoAbsPosition(self.driveID, position)
+        self._AbsPos = position
+        
+    AbsPos = property(getabspos, setabspos,fdel=None,'Absolute position of position servo')
+    
+    def RefreshMainGain(self): #asks servo controller for gain value
+        self._MainGain = ReadMainGain(self.driveID)
+        return self._MainGain
+    
+    def getmaingain(self): #returns value of gain stored in memory
+        return self._MainGain
+    
+    def setmaingain(self,gain): #sets main gain and assigns the input value to the controller
+        if gain > 127 or gain < 0:
+            print('Gain value out of range')
+            return self._MainGain
+        self._MainGain = SetMainGain(self.driveID, gain)
+        return self._MainGain
+    
+    MainGain = property(getmaingain, setmaingain, fdel=None, 'Main Gain')
+    #if main gain function works expand for other variables
