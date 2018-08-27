@@ -10,8 +10,8 @@ import DMM_Servo_Communication as com
 # Use DMMDRV software to set both servos as position servos
 
 #modify the X and Y to be proper drive ID's
-ID_X = 5 # drive ID of x axis
-ID_Y = 6 # drive ID of y axis
+ID_X = 21 # drive ID of x axis
+ID_Y = 22 # drive ID of y axis
 ID_Z = 7 # fake drive ID of z axis
 General_ID = 127 # general drive ID used to address all drives
 
@@ -23,10 +23,10 @@ com.Send(ID_Y, Make_LinearLine, 100)
 com.Send(ID_Z, Make_LinearLine, 100) #z is fake
 com.Send(General_ID, Make_LinearLine, 5) #feedrate
 
-com.Send(ID_X, Make_CircularArc, -100)
-com.Send(ID_Y, Make_CircularArc, 0)
-com.Send(ID_Z, Make_CircularArc, 0)
-com.Send(ID_X, Make_CircularArc, 100)
-com.Send(ID_Y, Make_CircularArc, 0)
-com.Send(ID_Z, Make_CircularArc, 0)
-com.Send(General_ID, Make_CircularArc,4) #may also be a negative 2 byte data bit to do CCW directions.
+#com.Send(ID_X, Make_CircularArc, -100)
+#com.Send(ID_Y, Make_CircularArc, 0)
+#com.Send(ID_Z, Make_CircularArc, 0)
+#com.Send(ID_X, Make_CircularArc, 100)
+#com.Send(ID_Y, Make_CircularArc, 0)
+#com.Send(ID_Z, Make_CircularArc, 0)
+#com.Send(General_ID, Make_CircularArc,4) #may also be a negative 2 byte data bit to do CCW directions.

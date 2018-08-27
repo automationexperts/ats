@@ -656,7 +656,7 @@ class Position():
     def __init__(self,driveID):
         # see if the serial port is initialized and if it isn't initialize it
         try:
-            ser
+            ser  #if ser exists the serial port has been opened already
         except NameError:  #serial port isn't open so open it
             InitializeCommunication() # function to open serial port
                    
@@ -717,3 +717,13 @@ class Position():
     
     MainGain = property(getmaingain, setmaingain, fdel=None, 'Main Gain')
     #if main gain function works expand for other variables
+    
+    #2018-07-15 23:53
+    #something odd about the Read_FoldNum command. When you send this command the servo sends back some data
+    #typically the data that is received is 7 packets.
+    #B6 B6 B5 B4 B3 B2 B1 B0
+    #B6 is drive ID
+    #B5 is number of packets and function code
+    #B4 and B3 represent the 4*Line_Num
+    #B2 and B1 contain the Gear_Num
+    #B0 is check sum
