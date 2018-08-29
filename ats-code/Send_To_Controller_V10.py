@@ -7,9 +7,9 @@ Created on Thu Jun 21 11:55:13 2018
 
 import time
 import sys
-#import serial          #uncomment me to run on pi
+import serial          #uncomment me to run on pi
 import numpy #unable to install numpy to the raspberry pi
-#from RPi import GPIO   #uncomment me to run on pi
+from RPi import GPIO   #uncomment me to run on pi
 import binascii
 import math
 import os
@@ -35,10 +35,10 @@ Set_MainGain =          0x10
 Set_SpeedGain =         0x11
 Set_IntGain =           0x12
 Set_TrqCons =           0x13
-Set_HighSpeed =		    0x14
-Set_HighAccel =		    0x15
+Set_HighSpeed =		   0x14
+Set_HighAccel =		   0x15
 Set_Pos_OnRange =       0x16
-Set_FoldNumber =		0x17
+Set_FoldNumber =		   0x17
 Read_MainGain =         0x18
 Read_SpeedGain =        0x19
 Read_IntGain =          0x1a
@@ -222,11 +222,15 @@ def CheckSum(BnA, BnMinus1A, DatalistA): # see page 55
 def Send(driveID, ToDo, packet):
     '''
 
-    :param driveID:
-    :param ToDo:
-    :param packet:
+    :param driveID: int type containing the drive ID number
+    :param ToDo: int type pertaining to the function code
+    :param packet: the data that you wish to have transmitted
+    
     :return:
     '''
+    
+    #Brad to update the send command.
+
 
     #packet should be integer not hex
     #Send packet to controller
@@ -245,8 +249,8 @@ def Send(driveID, ToDo, packet):
         a=a+1
     OutArray[OutLen+2] = B0
 
-#    ser.write(OutArray)             #uncomment me to run on pi
-#    ser.flush()                     #uncomment me to run on pi
+    ser.write(OutArray)             #uncomment me to run on pi
+    ser.flush()                     #uncomment me to run on pi
     
     #display the output
     print("Displaying Output of Send()")
@@ -255,6 +259,103 @@ def Send(driveID, ToDo, packet):
     print("\n")
     
     return OutArray
+
+def Obtain():
+    '''
+    
+    Read from serial and pull out relevent info.
+    Output: Type is tuple with 4 integers 
+    1st bit: true/false if there was an error transmitting
+    2nd bit: id number
+    3rd bit: function code
+    4th bit: data
+    
+    '''
+    
+    msg = ser.read(100)
+    
+    #check that something was sent
+    if len(msg) == 0:
+        #no mesage detected so check again
+        output = (False,'asdf','asdf','asdf')
+        return output
+    
+    #Check for errors in transmission
+    if ((sum(msg)-msg[-1])%128)+128 != msg[-1]:
+        output = (False,'asdf','asdf','asdf')
+        #Error found False = Receive()[0] please resend transimission
+        return output
+    
+    servo = msg[0] #servo number of servo returning command
+    function = int(bin(msg[1])[5:],2)  #function code of command
+    dataBytes = int(bin(msg[1])[3:5],2) + 1 # number of bytes in data section of packet
+    total = 0  #data contnained in transmission
+    for i in range(2,2+dataBytes):
+        total = total + (msg[i] - 0x80) * 2**(7*(2+dataBytes-i-1))
+    
+    # check function code to see if data should be unsigned
+    UnsignedFunctionCodes = {Is_MainGain, Is_SpeedGain, Is_IntGain, Is_TrqCons, Is_HighSpeed,
+                             Is_HighAccel, Is_Driver_ID, Is_Pos_OnRange, Is_Status, Is_Config}
+    if function in UnsignedFunctionCodes:
+        output = (True,servo,function,total)
+        return output        
+    
+    signed = 0  
+    #change to negative numbers if required
+    if total >= 134217728 and dataBytes == 4:
+        signed = total - 268435456
+        output = (True,servo,function,signed) 
+    elif total >= 1048576 and dataBytes == 3:
+        signed = total - 2097152
+        output = (True,servo,function,signed)
+    elif total >= 8192 and dataBytes == 2:
+        signed = total - 16384
+        output = (True,servo,function,signed) 
+    elif total >= 64 and dataBytes == 1:
+        signed = total - 128
+        output = (True,servo,function,signed)
+    else:
+        output = (True,servo,function,total)
+    return output
+
+def ReadDriveStatus(driveID):
+    '''
+    :param driveID: servo controller identification number
+    :return: integer tuple representing: onPosition, servo, alarm, motion in that order
+    :see page 56 for more details
+    '''
+    i=0
+    var = (False, 'asdf', 'asdf', 'asdf')
+    while var[0] == False:
+        Send(driveID, Read_Driver_Status, 0x5A)
+        var = Obtain()
+        i = i+1
+        if i > 5:
+            print('Error: variable not sent, set, or recieved properly, transmission error, checksum is not correct')
+            break
+    data = numpy.binary_repr(var[3],7) #see page 56
+    onPosition = int(data[6:7],2)  # 0-motor on position, 1-motor moving
+    servo = int(data[5:6],2)       # 0-motor servo, 1-motor free
+    alarm = int(data[2:5],2)       # 0-no alarm, 1-motor lost phase alarm, 2-motor current alarm, 3-motor overheat or overpower alarm, 4- error for CRC error check
+    motion = int(data[1:2,2])      # 0- S curve, linear, circular motion completed, 1- Motor in middle of move
+    output = (onPosition, servo, alarm, motion)
+    return output
+
+def ReadHighSpeed(driveID):
+    '''
+    :param driveID: servo controller identification number
+    :return: Gain parameter for input driveID
+    '''
+    i=0
+    var = (False, 'asdf', 'asdf', 'asdf')
+    while var[0] == False:
+        Send(driveID, Read_HighSpeed, 0x5A)
+        var = Obtain()
+        i = i+1
+        if i > 5:
+            print('Error: variable not sent, set, or recieved properly, transmission error, checksum is not correct')
+            break
+    return var[3]
 
 
 # MACHINE CHARACTERISTICS ---------------------------- [START]
@@ -306,6 +407,9 @@ k_radius_mSpeed = 50
 k_theta_mSpeed = 50
 
 last_action = "N/A"
+
+
+
 
 
 # INITIALIZATION ---------------------------- [END]
@@ -379,7 +483,8 @@ def generate_menu_items():
          "3":[3,"Set Linear Speed (m/min)",set_linear_speed],
          "4":[4,"Set Radius of Curvature (m)",set_radius],
          "5":[5,"Move R-Axis (mm)",move_Raxis],
-         "6":[6,"Move Theta-Axis (deg)",move_Taxis]}
+         "6":[6,"Move Theta-Axis (deg)",move_Taxis],
+         "7":[7,"Move to Curving Position",move_Curve]}
     return a
 
 def stage1_start(rpm):
@@ -389,7 +494,8 @@ def stage1_start(rpm):
     '''
 
     #Send(stage1_drive_id,Turn_ConstSpeed,rpm)
-    Send(general_drive_id, Turn_ConstSpeed, rpm)
+    #Send(general_drive_id, Turn_ConstSpeed, rpm)
+    Send(radius_drive_id, Turn_ConstSpeed, rpm)
     
     #set last_action message on hmi screen
     global last_action
@@ -404,7 +510,8 @@ def stage2_start(rpm):
     '''
 
     #Send(stage2_drive_id,Turn_ConstSpeed,rpm)
-    Send(general_drive_id, Turn_ConstSpeed, rpm)
+    #Send(general_drive_id, Turn_ConstSpeed, rpm)
+    Send(angle_drive_id,Turn_ConstSpeed,rpm)
     
     #set last_action message on hmi screen
     global last_action
@@ -447,8 +554,12 @@ def move_Raxis():
     print(steps)
     print(int(round(steps)))
 
-    #Send(radius_drive_id,Go_Relative_Pos,send_steps)
-#    Send(general_drive_id,Go_Relative_Pos,send_steps) #uncomment me
+    Send(radius_drive_id,Go_Relative_Pos,send_steps)
+    #Send(general_drive_id,Go_Relative_Pos,send_steps) #uncomment me
+    
+    #z=Obtain()
+    #print(z)
+    
 
     # how many steps in a full revolution???
     # n = steps in a full revolution
@@ -481,8 +592,8 @@ def move_Taxis():
     print(steps)
     print(int(round(steps)))
 
-    #Send(radius_drive_id,Go_Relative_Pos,send_steps)
-#    Send(general_drive_id,Go_Relative_Pos,send_steps)   #uncomment me
+    Send(angle_drive_id,Go_Relative_Pos,send_steps)
+    #Send(general_drive_id,Go_Relative_Pos,send_steps)   #uncomment me
 
     # how many steps in a full revolution???
     # n = steps in a full revolution
@@ -498,10 +609,14 @@ def move_Curve():
     '''
     '''
     
-    Send(general_drive_id,Make_LinearLine,1000)
-    Send(general_drive_id,Make_LinearLine,2000)
-    Send(general_drive_id,Make_LinearLine,0)
-    Send(general_drive_id,Make_LinearLine,1)
+    Send(radius_drive_id,Make_LinearLine,1000)
+    Send(angle_drive_id,Make_LinearLine,2000)
+    Send(1,Make_LinearLine,1500)
+    Send(general_drive_id,Make_LinearLine,3)
+    
+    #set last_action message on hmi screen
+    global last_action
+    last_action = "Moving To Curving Position, Radius of Curvature: " + str(radius_curvature) + " m"
     
     return
 
@@ -652,7 +767,7 @@ def execute_command(a):
 # page 50 of controller manual
 
 #uncomment me to run on pi
-#ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)  #this is the only serial port we use on the pi
+ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)  #this is the only serial port we use on the pi
 
 
 #ser.baudrate = 38400
@@ -679,10 +794,10 @@ ToController = Send(driveID, FunctionCode, data)
 
 #read 100 characters and store it in str msg
 print("Data Received:")
-#msg = ser.read(1000)                    #uncomment me to run on pi
+msg = ser.read(1000)                    #uncomment me to run on pi
 
 #print the string msg
-#print(msg)                              #uncomment me to run on pi
+print(msg)                              #uncomment me to run on pi
 print("\n")
 
 # End of Send code ---------------------------------------------------------
@@ -723,8 +838,8 @@ while True:
 
 #2018-07-15 23:53
 #something odd about the Read_FoldNum command. When you send this command the servo sends back some data
-#typically the data that is received is 7 packets.
-#B6 B6 B5 B4 B3 B2 B1 B0
+#typically the data that is received is 7 bytes in a packet.
+#B6 B5 B4 B3 B2 B1 B0
 #B6 is drive ID
 #B5 is number of packets and function code
 #B4 and B3 represent the 4*Line_Num
