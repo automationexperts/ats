@@ -649,7 +649,7 @@ def AbsPosRead(driveID):
     i=0
     var = (False, 'asdf', 'asdf', 'asdf')
     while var[0] == False:
-        Send(driveID, Read_PosCmd32, 0x5A)
+        Send(driveID, Read_PosCmd32, 0x1b)
         var = Obtain()
         i = i+1
         if i > 5:
@@ -667,7 +667,7 @@ class Position():
             InitializeCommunication() # function to open serial port
                    
         #getting saved values from controller
-        self._DriveID = driveID
+        self._driveID = driveID
         self._MainGain = ReadMainGain(driveID)
         self._SpeedGain = ReadSpeedGain(driveID)
         self._IntGain = ReadIntGain(driveID)
@@ -678,18 +678,20 @@ class Position():
         self._AbsPos = AbsPosRead(driveID)
         
     def SetOrigin(self): #sets current position to zero
-        Send(self.driveID,Set_Origin,0x5e)
+        Send(self._driveID,Set_Origin,0x00)
+        self._AbsPos = 0
     
     def GoToRel(self,position): #go to a position specified relative to the current one
-        GoRelativePosition(self.driveID, position)
+        GoRelativePosition(self._driveID, position)
+        self._AbsPos = self._AbsPos + position #use RefreshPos after movement to get accurate position
         
     def RefreshPos(self): #refreshes the absolute position attributed by reading the servo
-        self._AbsPos = AbsPosRead(self.driveID)
+        self._AbsPos = AbsPosRead(self._driveID)
         return self._AbsPos
     
     def Stopped(self): #function that can be used to poll motor to determine if it is moving
         var = (False, 'asdf', 'asdf', 'asdf')
-        Send(self.driveID, Read_Driver_Status, 0x5A)
+        Send(self._driveID, Read_Driver_Status, 0x5A)
         var = Obtain()
         data = numpy.binary_repr(var[3],7) #see page 56
         onPosition = int(data[6:7],2)  # 0-motor on position, 1-motor moving
@@ -702,7 +704,7 @@ class Position():
         return self._AbsPos
     
     def setabspos(self,position):
-        GoAbsPosition(self.driveID, position)
+        GoAbsPosition(self._driveID, position)
         self._AbsPos = position
     
     def delabspos(self):
@@ -711,7 +713,7 @@ class Position():
     AbsPos = property(getabspos, setabspos, delabspos, 'Absolute position of position servo')
     
     def RefreshMainGain(self): #asks servo controller for gain value
-        self._MainGain = ReadMainGain(self.driveID)
+        self._MainGain = ReadMainGain(self._driveID)
         return self._MainGain
     
     def getmaingain(self): #returns value of gain stored in memory
@@ -721,7 +723,7 @@ class Position():
         if gain > 127 or gain < 0:
             print('Gain value out of range')
             return self._MainGain
-        self._MainGain = SetMainGain(self.driveID, gain)
+        self._MainGain = SetMainGain(self._driveID, gain)
         return self._MainGain
     
     def delmaingain(self):
