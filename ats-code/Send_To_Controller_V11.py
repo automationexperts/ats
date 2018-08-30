@@ -7,9 +7,9 @@ Created on Thu Jun 21 11:55:13 2018
 
 import time
 import sys
-import serial          #uncomment me to run on pi
+#import serial          #uncomment me to run on pi
 import numpy #unable to install numpy to the raspberry pi
-from RPi import GPIO   #uncomment me to run on pi
+#from RPi import GPIO   #uncomment me to run on pi
 import binascii
 import math
 import os
@@ -249,8 +249,8 @@ def Send(driveID, ToDo, packet):
         a=a+1
     OutArray[OutLen+2] = B0
 
-    ser.write(OutArray)             #uncomment me to run on pi
-    ser.flush()                     #uncomment me to run on pi
+#    ser.write(OutArray)             #uncomment me to run on pi
+#    ser.flush()                     #uncomment me to run on pi
     
     #display the output
     print("Displaying Output of Send()")
@@ -368,6 +368,9 @@ theta_gear_ratio = 32 #gear ratio for the gearbox that adjusts the angle of stag
 
 #define roller diameter in inches
 roller_diameter = 10.0
+
+#distance between the two fixed rollers in stage 2 in m
+roller_distance = 600/1000
 
 #ballscrew lead in mm
 # LEAD refers to the distance traveled for each complete turn of the screw
@@ -556,7 +559,6 @@ def move_Raxis():
     print(int(round(steps)))
 
     Send(radius_drive_id,Go_Relative_Pos,send_steps)
-    #Send(general_drive_id,Go_Relative_Pos,send_steps) #uncomment me
     
     #z=Obtain()
     #print(z)
@@ -594,7 +596,6 @@ def move_Taxis():
     print(int(round(steps)))
 
     Send(angle_drive_id,Go_Relative_Pos,send_steps)
-    #Send(general_drive_id,Go_Relative_Pos,send_steps)   #uncomment me
 
     # how many steps in a full revolution???
     # n = steps in a full revolution
@@ -614,12 +615,25 @@ def move_Curve():
     
     '''
 
+    #radius of curvature in m
+    R = radius_curvature
+    
+    #roller radius in m
+    r = roller_diameter/2*25.4/1000
+    print(r)
+    
+    #distance between rollers in m
+    d = roller_distance
+    
+    print(R)
+    # there is a problem with this code, it is not calculating it right
+    x = R - ((R**2)*(r+R**2)**2*(-d**2+4*r**2+8*r*R**2+4*R**4))**0.5/(2*(r+R**2)**2)
+    print(x)
+
+    #test code to test servo drive max acceleration and velocity constants
     z = 1000000
     Send(radius_drive_id,Go_Relative_Pos,z)
     Send(angle_drive_id,Go_Relative_Pos,int(z*0.38119333))
-    
-    x = radius_curvature
-    print(x)
     
     #set last_action message on hmi screen
     global last_action
@@ -774,7 +788,7 @@ def execute_command(a):
 # page 50 of controller manual
 
 #uncomment me to run on pi
-ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)  #this is the only serial port we use on the pi
+#ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)  #this is the only serial port we use on the pi
 
 
 #ser.baudrate = 38400
@@ -801,10 +815,10 @@ ToController = Send(driveID, FunctionCode, data)
 
 #read 100 characters and store it in str msg
 print("Data Received:")
-msg = ser.read(1000)                    #uncomment me to run on pi
+#msg = ser.read(1000)                    #uncomment me to run on pi
 
 #print the string msg
-print(msg)                              #uncomment me to run on pi
+#print(msg)                              #uncomment me to run on pi
 print("\n")
 
 # End of Send code ---------------------------------------------------------
