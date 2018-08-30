@@ -608,12 +608,18 @@ def move_Taxis():
 
 def move_Curve():
     '''
-    '''
+    Takes in radius of curvature (m)
     
-    Send(radius_drive_id,Make_LinearLine,10000)
-    Send(angle_drive_id,Make_LinearLine,20000)
-    Send(3,Make_LinearLine,1500)
-    Send(general_drive_id,Make_LinearLine,3)
+    :return: nothing
+    
+    '''
+
+    z = 1000000
+    Send(radius_drive_id,Go_Relative_Pos,z)
+    Send(angle_drive_id,Go_Relative_Pos,int(z*0.38119333))
+    
+    x = radius_curvature
+    print(x)
     
     #set last_action message on hmi screen
     global last_action
@@ -861,3 +867,9 @@ while True:
 # - get theta-axis moving +'ve and -'ve in degrees, translate degrees to turns of the servo
 # - if Brad can get servo read code working then we can display the servo parameters also and introduce an initialization section of the code to grab those parameters
 
+#2018-08-29 
+#do not use send the make linear line function to the servo. It is not supported by DMM.
+#max acceleration r = 16
+#max acceleration theta = 6
+#max velocity r = 33
+#max velocity theta = 19
