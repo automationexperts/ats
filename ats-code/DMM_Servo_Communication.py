@@ -676,9 +676,11 @@ class Position():
         self._Pos_OnRange = ReadPos_OnRange(driveID)
         self._GearNum = ReadPos_FoldNumber(driveID)
         self._AbsPos = AbsPosRead(driveID)
+        self._origin = AbsPosRead(driveID) #origin initially set to position where equipment starts up
         
     def SetOrigin(self): #sets current position to zero
-        Send(self._driveID,Set_Origin,0x00)
+        #Send(self._driveID,Set_Origin,0x00) #only works when controller in absolute mode and encoder only single term
+        self._origin = AbsPosRead(self._driveID)
         self._AbsPos = 0
     
     def GoToRel(self,position): #go to a position specified relative to the current one
@@ -686,7 +688,7 @@ class Position():
         self._AbsPos = self._AbsPos + position #use RefreshPos after movement to get accurate position
         
     def RefreshPos(self): #refreshes the absolute position attributed by reading the servo
-        self._AbsPos = AbsPosRead(self._driveID)
+        self._AbsPos = AbsPosRead(self._driveID) - self._origin
         return self._AbsPos
     
     def Stopped(self): #function that can be used to poll motor to determine if it is moving
@@ -704,7 +706,8 @@ class Position():
         return self._AbsPos
     
     def setabspos(self,position):
-        GoAbsPosition(self._driveID, position)
+        a = position + self._origin
+        GoAbsPosition(self._driveID, a)
         self._AbsPos = position
     
     def delabspos(self):
@@ -731,6 +734,120 @@ class Position():
     
     MainGain = property(getmaingain, setmaingain, delmaingain, 'Main Gain')
     #if main gain function works expand for other variables
+
+    def RefreshSpeedGain(self): #asks servo controller for gain value
+        self._SpeedGain = ReadSpeedGain(self._driveID)
+        return self._SpeedGain
+    
+    def getspeedgain(self): #returns value of gain stored in memory
+        return self._SpeedGain
+    
+    def setspeedgain(self,gain): #sets main gain and assigns the input value to the controller
+        if gain > 127 or gain < 0:
+            print('Gain value out of range')
+            return self._SpeedGain
+        self._SpeedGain = SetSpeedGain(self._driveID, gain)
+        return self._SpeedGain
+    
+    def delspeedgain(self):
+        print('Error: unable to delete speed gain')
+    
+    SpeedGain = property(getspeedgain, setspeedgain, delspeedgain, 'Speed Gain')
+
+    def RefreshIntGain(self): #asks servo controller for gain value
+        self._IntGain = ReadIntGain(self._driveID)
+        return self._IntGain
+    
+    def getintgain(self): #returns value of gain stored in memory
+        return self._IntGain
+    
+    def setintgain(self,gain): #sets main gain and assigns the input value to the controller
+        if gain > 127 or gain < 0:
+            print('Gain value out of range')
+            return self._IntGain
+        self._IntGain = SetIntGain(self._driveID, gain)
+        return self._IntGain
+    
+    def delintgain(self):
+        print('Error: unable to delete int gain')
+    
+    IntGain = property(getintgain, setintgain, delintgain, 'Int Gain')
+   
+    def RefreshHighSpeed(self): #asks servo controller for gain value
+        self._HighSpeed = ReadHighSpeed(self._driveID)
+        return self._HighSpeed
+    
+    def gethighspeed(self): #returns value of gain stored in memory
+        return self._HighSpeed
+    
+    def sethighspeed(self,speed): #sets main gain and assigns the input value to the controller
+        if speed > 127 or speed < 0:
+            print('speed value out of range')
+            return self._HighSpeed
+        self._HighSpeed = SetHighSpeed(self._driveID, speed)
+        return self._HighSpeed
+    
+    def delhighspeed(self):
+        print('Error: unable to delete speed')
+    
+    HighSpeed = property(gethighspeed, sethighspeed, sethighspeed, 'High Speed')
+    
+    def RefreshHighAccel(self): #asks servo controller for gain value
+        self._HighAccel = ReadHighAccel(self._driveID)
+        return self._HighAccel
+    
+    def gethighacl(self): #returns value of gain stored in memory
+        return self._HighAccel
+    
+    def sethighacl(self,accel): #sets main gain and assigns the input value to the controller
+        if accel > 127 or accel < 0:
+            print('accel value out of range')
+            return self._HighAccel
+        self._HighAccel = SetHighAccel(self._driveID, accel)
+        return self._HighAccel
+    
+    def delhighacl(self):
+        print('Error: unable to delete high acceleration')
+    
+    HighAccel = property(gethighacl, sethighacl, delhighacl, 'High Acceleration')
+    
+    def RefreshPos_OnRange(self): #asks servo controller for gain value
+        self._Pos_OnRange = ReadPos_OnRange(self._driveID)
+        return self._Pos_OnRange
+    
+    def getpos(self): #returns value of gain stored in memory
+        return self._Pos_OnRange
+    
+    def setpos(self,OnRange): #sets main gain and assigns the input value to the controller
+        if OnRange > 127 or OnRange < 0:
+            print('position on range value out of range')
+            return self._Pos_OnRange
+        self._Pos_OnRange = SetPos_OnRange(self._driveID, OnRange)
+        return self._Pos_OnRange
+    
+    def delpos(self):
+        print('Error: unable to delete position on range')
+    
+    Pos_OnRange = property(getpos, setpos, delpos, 'Position on Range')
+    
+    def RefreshPos_FoldNumber(self): #asks servo controller for gain value
+        self._GearNum = ReadPos_FoldNumber(self._driveID)
+        return self._GearNum
+    
+    def getpos2(self): #returns value of gain stored in memory
+        return self._GearNum
+    
+    def setpos2(self,FoldNumber): #sets main gain and assigns the input value to the controller
+        if FoldNumber > 16384 or FoldNumber < 500:
+            print('value out of range')
+            return self._GearNum
+        self._GearNum = SetPos_FoldNumber(self._driveID, FoldNumber)
+        return self._GearNum
+    
+    def delpos2(self):
+        print('Error: unable to delete fold number')
+    
+    GearNum = property(getpos2, setpos2, delpos2, 'Fold Number')
     
     #2018-07-15 23:53
     #something odd about the Read_FoldNum command. When you send this command the servo sends back some data
