@@ -380,6 +380,10 @@ ballscrew_lead = 5 #mm
 n_rack = 350 #number of teeth on the curved rack (in one complete revolution)
 n_pinion = 12 #number of teeth on the pinion spur gear
 
+#the slope between theta and r-axis.
+#ie. theta (deg) / r (m) = 0.38119333
+xtslope = 0.38119333
+
 # MACHINE CHARACTERISTICS ---------------------------- [END]
 
 
@@ -390,7 +394,7 @@ n_pinion = 12 #number of teeth on the pinion spur gear
 #define variable for linear speed in m/min.
 #default value is 1.0 m/min
 linear_speed = 1.0 #m/min
-radius_curvature = 15.240 #m
+radius_curvature = 1.5 #15.240 #m
 R_gear_num = 4096 #gear_num parameter for the r-axis servo
 T_gear_num = 4096 #gear_num parameter for the theta-axis servo
 stage1_gear_num = 4096 #gear_num parameter for the stage 1 servo
@@ -620,20 +624,57 @@ def move_Curve():
     
     #roller radius in m
     r = roller_diameter/2*25.4/1000
-    print(r)
     
     #distance between rollers in m
     d = roller_distance
     
-    print(R)
-    # there is a problem with this code, it is not calculating it right
-    x = R - ((R**2)*(r+R**2)**2*(-d**2+4*r**2+8*r*R**2+4*R**4))**0.5/(2*(r+R**2)**2)
-    print(x)
+    print("radius of curvature (m) = ", R)
+    
+    #calculate the r-axis movement (labelled x here) in meters
+    x = R - (-1*(d - 2*r - 2*R)*R**2*(r + R)**2*(d + 2*r + 2*R))**0.5/(2*(r + R)**2)
+    
+    #x = R - ((R**2)*(r + R**2)**2*(-d**2 + 4*r**2 + 8*r*R**2 + 4*R**4))**(1/2)/(2*(r + R**2)**2)
+        
+    #convert to mm
+    x = x*1000
+
+    #calculate movement in theta axis based on xtslope, the linear relationship
+    #between the movement in the theta-axis and r-axis
+    theta = xtslope*x
+    
+    print("movement in r-axis (mm) = ", x)
+    print("movement in theta-axis(deg) = ",theta)
+    
+    
+    #calculate the steps for r-axis movement
+    spr_r = 4 * R_gear_num  # steps per revolution
+    steps_r = x/ballscrew_lead*spr_r*radius_gear_ratio
+    send_steps_r = int(round(steps_r))
+
+    #test output for r-axis
+    print("steps = ", steps_r)
+    print("steps int = ", int(round(steps_r)))
+    
+    
+    #calculate the steps for theta-axis movement
+    spr_t = 4 * T_gear_num  # steps per revolution for theta-axis servo
+    steps_t = spr_t * (n_rack/n_pinion) * theta / 360 * theta_gear_ratio #use formula to calculate steps made by the servo
+    send_steps_t = int(round(steps_t))
+
+    #test output for theta-axis
+    print("steps = ", steps_t)
+    print("steps int = ", int(round(steps_t)))
+    
+
+    #send the steps for r-axis and t-axis to the drives
+    Send(radius_drive_id,Go_Relative_Pos,send_steps_r)
+    Send(angle_drive_id,Go_Relative_Pos,send_steps_t)
+    
 
     #test code to test servo drive max acceleration and velocity constants
-    z = 1000000
-    Send(radius_drive_id,Go_Relative_Pos,z)
-    Send(angle_drive_id,Go_Relative_Pos,int(z*0.38119333))
+    #z = 1000000
+    #Send(radius_drive_id,Go_Relative_Pos,z)
+    #Send(angle_drive_id,Go_Relative_P#os,int(z*0.38119333))
     
     #set last_action message on hmi screen
     global last_action
