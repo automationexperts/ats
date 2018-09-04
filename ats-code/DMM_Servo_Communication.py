@@ -675,9 +675,16 @@ class Position():
         self._HighAccel = ReadHighAccel(driveID)
         self._Pos_OnRange = ReadPos_OnRange(driveID)
         self._GearNum = ReadPos_FoldNumber(driveID)
+        self._GearRatio = 4096 / self._GearNum
+        self._MaxMotorSpeed = (1/16)*(self._HighSpeed+3)*(self._HighSpeed+3)*12.21*self._GearRatio
+        self._MaxMotorAcceleration = self._HighAccel*635.78*self._GearRatio
         self._AbsPos = AbsPosRead(driveID)
         self._origin = AbsPosRead(driveID) #origin initially set to position where equipment starts up
         
+    def Stop(self): #immediately stops the servo moving
+        ConstSpeed(self._driveID, 0)
+        self._AbsPos = AbsPosRead(self._driveID) - self._origin
+    
     def SetOrigin(self): #sets current position to zero
         #Send(self._driveID,Set_Origin,0x00) #only works when controller in absolute mode and encoder only single term
         self._origin = AbsPosRead(self._driveID)
@@ -691,7 +698,7 @@ class Position():
         self._AbsPos = AbsPosRead(self._driveID) - self._origin
         return self._AbsPos
     
-    def Stopped(self): #function that can be used to poll motor to determine if it is moving
+    def isStopped(self): #function that can be used to poll motor to determine if it is moving
         var = (False, 'asdf', 'asdf', 'asdf')
         Send(self._driveID, Read_Driver_Status, 0x5A)
         var = Obtain()
@@ -832,6 +839,7 @@ class Position():
     
     def RefreshPos_FoldNumber(self): #asks servo controller for gain value
         self._GearNum = ReadPos_FoldNumber(self._driveID)
+        self._GearRatio = 4096 / self._GearNum
         return self._GearNum
     
     def getpos2(self): #returns value of gain stored in memory
@@ -842,12 +850,67 @@ class Position():
             print('value out of range')
             return self._GearNum
         self._GearNum = SetPos_FoldNumber(self._driveID, FoldNumber)
+        self._GearRatio = 4096 / self._GearNum
         return self._GearNum
     
     def delpos2(self):
         print('Error: unable to delete fold number')
     
     GearNum = property(getpos2, setpos2, delpos2, 'Fold Number')
+    
+    def getratio(self):
+        return self._GearRatio
+    
+    def setratio(self,ratio):
+        FoldNumber = int(4096 / ratio)
+        if FoldNumber > 16384 or FoldNumber < 500:
+            print('value out of range')
+            return self._GearRatio
+        self._GearNum = SetPos_FoldNumber(self._driveID, FoldNumber)
+        self._GearRatio = 4096 / self._GearNum
+    
+    def delratio(self):
+        print('Error: unable to delete fold number')
+    
+    GearRatio = property(getratio, setratio, delratio, 'gear ratio')
+    
+    def getmaxspeed(self):
+        self._MaxMotorSpeed = (1/16)*(self._HighSpeed+3)*(self._HighSpeed+3)*12.21*self._GearRatio
+        return self._MaxMotorSpeed
+    
+    def setmaxspeed(self,A):
+        print('Error, unable to set in this way, please use HighSpeed, and Gear ratio')
+        print('formula is (1/16)*(k+3)*(k+3)*12.21*gear_ratio')
+        
+    def delmaxspeed(self):
+        print('Error, unable to delete maximum speed')
+        
+    MaxSpeed=property(getmaxspeed, setmaxspeed, delmaxspeed, 'max speed')
+
+    def getmaxacc(self):
+        self._MaxMotorAcceleration = self._HighAccel*635.78*self._GearRatio
+        return self._MaxMotorAcceleration
+    
+    def setmaxacc(self,A):
+        print('Error, unable to set in this way, please use HighAccel, and Gear ratio')
+        print('formula is HighAccel * 635.78 * GearRatio')
+
+    def delmaxacc(self):
+        print('Error, unable to delete maximum acceleration')
+
+    MaxAcceleration = property(getmaxacc, setmaxacc, delmaxacc, 'Maximum Acceleration')        
+    
+    def getdriveid(self):
+        return self._driveID
+    
+    def setdriveid(self,A):
+        print('Error: please use DMM software to set this parameter')
+        
+    def deldriveid(self):
+        print('Error: cannot delete drive ID')
+    
+    driveID = property(getdriveid, setdriveid, deldriveid, 'driveID')
+    
     
     #2018-07-15 23:53
     #something odd about the Read_FoldNum command. When you send this command the servo sends back some data
