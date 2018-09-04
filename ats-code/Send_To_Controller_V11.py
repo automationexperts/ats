@@ -13,6 +13,8 @@ from RPi import GPIO   #uncomment me to run on pi
 import binascii
 import math
 import os
+import DMM_Servo_Communication as com
+
 
 #Function (Sent by host)
 General_Read =          0x0e
@@ -391,6 +393,20 @@ xtslope = 0.38119333
 
 # INITIALIZATION ---------------------------- [START]
 
+#BRAD'S code for initializing servos
+taxis = com.Position(angle_drive_id)
+raxis = com.Position(radius_drive_id)
+#stage1 = com.Position(stage1_drive_id)
+#stage2 = com.Position(stage2_drive_id)
+
+raxis.sethighspeed(40)
+raxis.sethighacl(16)
+taxis.sethighspeed(12)
+taxis.sethighacl(6)
+
+print(raxis.GearNum)
+print(taxis.GearNum)
+
 #define variable for linear speed in m/min.
 #default value is 1.0 m/min
 linear_speed = 1.0 #m/min
@@ -401,18 +417,20 @@ stage1_gear_num = 4096 #gear_num parameter for the stage 1 servo
 stage2_gear_num = 4096 #gear_num parameter for the stage 2 servo
 #gear number is from 500 to 16384
 
+
+
 #default values for max speed and max acceleration
 #valid values are between 1 and 127 (integer)
 #these values should be read in in the initalization period once we have the read functionality working
 k_stage1_mAcc = 2
 k_stage2_mAcc = 2
-k_radius_mAcc = 2
-k_theta_mAcc = 2
+k_radius_mAcc = raxis.gethighacl()
+k_theta_mAcc = taxis.gethighacl()
 
 k_stage1_mSpeed = 50
 k_stage2_mSpeed = 50
-k_radius_mSpeed = 50
-k_theta_mSpeed = 50
+k_radius_mSpeed = raxis.gethighspeed()
+k_theta_mSpeed = taxis.gethighspeed()
 
 last_action = "N/A"
 
@@ -492,7 +510,8 @@ def generate_menu_items():
          "4":[4,"Set Radius of Curvature (m)",set_radius],
          "5":[5,"Move R-Axis (mm)",move_Raxis],
          "6":[6,"Move Theta-Axis (deg)",move_Taxis],
-         "7":[7,"Move to Curving Position",move_Curve]}
+         "7":[7,"Set Zero Position",zero],
+         "8":[8,"Move to Curving Position",move_Curve]}
     return a
 
 def stage1_start(rpm):
@@ -611,6 +630,31 @@ def move_Taxis():
 
     return
 
+def zero():
+    '''
+    :sets the raxis and taxis to a zero or origin point
+    '''
+    raxis.SetOrigin()
+    taxis.SetOrigin()
+    
+    global last_action
+    last_action = "radius and theta axes set to zero at current position"    
+    
+     #for later on when we incorporate a proximity sensor
+    #com.ConstSpeed(raxis.driveID,60) #move servo closer to the sensor
+    #com.ConstSpeed(thetaxis.driveID,60)
+    #while (radlimit == false):
+        #test GPIO to determine when radlimit becomes true
+    #com.ConstSpeed(raxis.driveID,0)
+    #com.ConstSpeed(thetaxis.driveID,0)
+    #raxis.SetOrigin()
+    #thetaxis.SetOrigin()  
+    
+    return   
+
+    
+
+
 def move_Curve():
     '''
     Takes in radius of curvature (m)
@@ -667,14 +711,14 @@ def move_Curve():
     
 
     #send the steps for r-axis and t-axis to the drives
-    #Send(radius_drive_id,Go_Relative_Pos,send_steps_r)
-    #Send(angle_drive_id,Go_Relative_Pos,send_steps_t)
+    Send(radius_drive_id,Go_Relative_Pos,send_steps_r)
+    Send(angle_drive_id,Go_Relative_Pos,send_steps_t)
     
 
     #test code to test servo drive max acceleration and velocity constants
-    z = 1000000
-    Send(radius_drive_id,Go_Relative_Pos,z)
-    Send(angle_drive_id,Go_Relative_Pos,int(z*0.38119333))
+    #z = 1000000
+    #Send(radius_drive_id,Go_Relative_Pos,z)
+    #Send(angle_drive_id,Go_Relative_Pos,int(z*0.38119333))
     
     #set last_action message on hmi screen
     global last_action
@@ -770,10 +814,14 @@ def hmi_display(menu_items):
     
     print("R-axis Maximum Acceleration\t\t",max_motor_acceleration(k_radius_mAcc,gear_ratio(R_gear_num)),"rpm/s")
     print("R-axis Maximum Speed\t\t\t",max_motor_speed(k_radius_mSpeed,gear_ratio(R_gear_num)),"rpm")
+    print("R-axis High Speed Constant\t\t",k_radius_mSpeed,"[Unitless]")
+    print("R-axis High Acceleration Constant\t",k_radius_mAcc,"[Unitless]")
     print("\n")
     
     print("T-axis Maximum Acceleration\t\t",max_motor_acceleration(k_theta_mAcc,gear_ratio(T_gear_num)),"rpm/s")
     print("T-axis Maximum Speed\t\t\t",max_motor_speed(k_theta_mSpeed,gear_ratio(T_gear_num)),"rpm")
+    print("T-axis High Speed Constant\t\t",k_theta_mSpeed,"[Unitless]")
+    print("T-axis High Acceleration Constant\t",k_theta_mAcc,"[Unitless]")
     print("\n")
     print("Last Action:",last_action)
     print("\n")
