@@ -232,10 +232,20 @@ def stop_all():
     :return:
     '''
 
-    Send(stage1_drive_id,Turn_ConstSpeed,0)
-    Send(stage2_drive_id,Turn_ConstSpeed,0)
-    Send(radius_drive_id,Turn_ConstSpeed,0)
-    Send(angle_drive_id,Turn_ConstSpeed,0)
+    taxis.Stop()
+    raxis.Stop()
+    stage1.Stop()
+    stage2.Stop()
+    
+    com.ConstSpeed(taxis.driveID,0)
+    com.ConstSpeed(raxis.driveID,0)
+    com.ConstSpeed(stage1.driveID,0)
+    com.ConstSpeed(stage2.driveID,0)
+    
+    #Send(stage1_drive_id,Turn_ConstSpeed,0)
+    #Send(stage2_drive_id,Turn_ConstSpeed,0)
+    #Send(radius_drive_id,Turn_ConstSpeed,0)
+    #Send(angle_drive_id,Turn_ConstSpeed,0)
     
     #set last_action message on hmi screen
     global last_action
@@ -254,14 +264,15 @@ def move_Raxis():
     print("+'ve: smaller radius of curvature, -'ve: larger radius of curvature")
 
     d = float(input("Distance to move R-Axis (mm):"))
-    spr = 4 * R_gear_num  # steps per revolution
+    spr = 4 * raxis.GearNum #R_gear_num  # steps per revolution
     steps = d/ballscrew_lead*spr*radius_gear_ratio
     send_steps = int(round(steps))
 
     print(steps)
     print(int(round(steps)))
 
-    Send(radius_drive_id,Go_Relative_Pos,send_steps)
+    raxis.GoToRel(send_steps)
+    #Send(radius_drive_id,Go_Relative_Pos,send_steps)
     
     #z=Obtain()
     #print(z)
@@ -291,14 +302,15 @@ def move_Taxis():
     print("+'ve: more curvature in the profile, -'ve: straighter profile")
 
     theta = float(input("Angle to move Theta-Axis (deg):"))
-    spr = 4 * T_gear_num  # steps per revolution for theta-axis servo
+    spr = 4 * taxis.GearNum #T_gear_num  # steps per revolution for theta-axis servo
     steps = spr * (n_rack/n_pinion) * theta / 360 * theta_gear_ratio #use formula to calculate steps made by the servo
     send_steps = int(round(steps))
 
     print(steps)
     print(int(round(steps)))
 
-    Send(angle_drive_id,Go_Relative_Pos,send_steps)
+    taxis.GoToRel(send_steps)
+    #Send(angle_drive_id,Go_Relative_Pos,send_steps)
 
     # how many steps in a full revolution???
     # n = steps in a full revolution
@@ -346,7 +358,7 @@ def move_Curve():
     
     
     #calculate the steps for r-axis movement
-    spr_r = 4 * R_gear_num  # steps per revolution
+    spr_r = 4 * raxis.GearNum #R_gear_num  # steps per revolution
     steps_r = x/ballscrew_lead*spr_r*radius_gear_ratio
     send_steps_r = int(round(steps_r))
 
@@ -356,7 +368,7 @@ def move_Curve():
     
     
     #calculate the steps for theta-axis movement
-    spr_t = 4 * T_gear_num  # steps per revolution for theta-axis servo
+    spr_t = 4 * taxis.GearNum #T_gear_num  # steps per revolution for theta-axis servo
     steps_t = spr_t * (n_rack/n_pinion) * theta / 360 * theta_gear_ratio #use formula to calculate steps made by the servo
     send_steps_t = int(round(steps_t))
 
@@ -366,9 +378,10 @@ def move_Curve():
     
 
     #send the steps for r-axis and t-axis to the drives
-    Send(radius_drive_id,Go_Relative_Pos,send_steps_r)
-    Send(angle_drive_id,Go_Relative_Pos,send_steps_t)
-    
+    #Send(radius_drive_id,Go_Relative_Pos,send_steps_r)
+    #Send(angle_drive_id,Go_Relative_Pos,send_steps_t)
+    taxis.GoToRel(send_steps_r)
+    raxis.GoToRel(send_steps_t)
 
     #test code to test servo drive max acceleration and velocity constants
     #z = 1000000
@@ -459,22 +472,32 @@ def hmi_display(menu_items):
     print("STAGE 2 RPM Set Point\t\t\t",get_rpm(linear_speed,roller_diameter,stage2_gear_ratio),"rpm")
     print("\n")
     
-    print("Stage 1 Maximum Acceleration\t\t",max_motor_acceleration(k_stage1_mAcc,gear_ratio(stage1_gear_num)),"rpm/s")
-    print("Stage 1 Maximum Speed\t\t\t",max_motor_speed(k_stage1_mSpeed,gear_ratio(stage1_gear_num)),"rpm")
+    #print("Stage 1 Maximum Acceleration\t\t",max_motor_acceleration(k_stage1_mAcc,gear_ratio(stage1_gear_num)),"rpm/s")
+    #print("Stage 1 Maximum Speed\t\t\t",max_motor_speed(k_stage1_mSpeed,gear_ratio(stage1_gear_num)),"rpm")
+    #print("\n")
+    print("Stage 1 Maximum Acceleration\t\t",stage1.MaxAcceleration,"rpm/s")
+    print("Stage 1 Maximum Speed\t\t\t",stage1.MaxSpeed,"rpm")
     print("\n")
     
-    print("Stage 2 Maximum Acceleration\t\t",max_motor_acceleration(k_stage2_mAcc,gear_ratio(stage2_gear_num)),"rpm/s")
-    print("Stage 2 Maximum Speed\t\t\t",max_motor_speed(k_stage2_mSpeed,gear_ratio(stage2_gear_num)),"rpm")
+    #print("Stage 2 Maximum Acceleration\t\t",max_motor_acceleration(k_stage2_mAcc,gear_ratio(stage2_gear_num)),"rpm/s")
+    #print("Stage 2 Maximum Speed\t\t\t",max_motor_speed(k_stage2_mSpeed,gear_ratio(stage2_gear_num)),"rpm")
+    #print("\n")
+    print("Stage 2 Maximum Acceleration\t\t",stage2.MaxAcceleration,"rpm/s")
+    print("Stage 2 Maximum Speed\t\t\t",stage2.MaxSpeed,"rpm")
     print("\n")
     
-    print("R-axis Maximum Acceleration\t\t",max_motor_acceleration(k_radius_mAcc,gear_ratio(R_gear_num)),"rpm/s")
-    print("R-axis Maximum Speed\t\t\t",max_motor_speed(k_radius_mSpeed,gear_ratio(R_gear_num)),"rpm")
+    #print("R-axis Maximum Acceleration\t\t",max_motor_acceleration(k_radius_mAcc,gear_ratio(R_gear_num)),"rpm/s")
+    #print("R-axis Maximum Speed\t\t\t",max_motor_speed(k_radius_mSpeed,gear_ratio(R_gear_num)),"rpm")
+    print("R-axis Maximum Acceleration\t\t",raxis.MaxAcceleration,"rpm/s")
+    print("R-axis Maximum Speed\t\t\t",raxis.MaxSpeed,"rpm")
     print("R-axis High Speed Constant\t\t",k_radius_mSpeed,"[Unitless]")
     print("R-axis High Acceleration Constant\t",k_radius_mAcc,"[Unitless]")
     print("\n")
     
-    print("T-axis Maximum Acceleration\t\t",max_motor_acceleration(k_theta_mAcc,gear_ratio(T_gear_num)),"rpm/s")
-    print("T-axis Maximum Speed\t\t\t",max_motor_speed(k_theta_mSpeed,gear_ratio(T_gear_num)),"rpm")
+    #print("T-axis Maximum Acceleration\t\t",max_motor_acceleration(k_theta_mAcc,gear_ratio(T_gear_num)),"rpm/s")
+    #print("T-axis Maximum Speed\t\t\t",max_motor_speed(k_theta_mSpeed,gear_ratio(T_gear_num)),"rpm")
+    print("T-axis Maximum Acceleration\t\t",taxis.MaxAcceleration,"rpm/s")
+    print("T-axis Maximum Speed\t\t\t",taxis.MaxSpeed,"rpm")
     print("T-axis High Speed Constant\t\t",k_theta_mSpeed,"[Unitless]")
     print("T-axis High Acceleration Constant\t",k_theta_mAcc,"[Unitless]")
     print("\n")
@@ -532,7 +555,7 @@ def execute_command(a):
 # page 50 of controller manual
 
 #uncomment me to run on pi
-ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)  #this is the only serial port we use on the pi
+#ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)  #this is the only serial port we use on the pi
 
 
 #ser.baudrate = 38400
@@ -545,10 +568,10 @@ ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = s
 #DRIVE ID, FUNCTION CODE, AND DATA
 #set the varibles below to set the data that will be sent.
 driveID = general_drive_id
-FunctionCode = Read_FoldNumber #packet function code see page 53. Function Code
+#FunctionCode = Read_FoldNumber #packet function code see page 53. Function Code
 data = 1 #data to be sent. Data can be max speed, gear number, etc.
 
-ToController = Send(driveID, FunctionCode, data)
+#ToController = Send(driveID, FunctionCode, data)
 #everything works, packets are sent properly, negative numbers may need to 
 #be properly formatted
 
@@ -559,10 +582,10 @@ ToController = Send(driveID, FunctionCode, data)
 
 #read 100 characters and store it in str msg
 print("Data Received:")
-msg = ser.read(1000)                    #uncomment me to run on pi
+#msg = ser.read(1000)                    #uncomment me to run on pi
 
 #print the string msg
-print(msg)                              #uncomment me to run on pi
+#print(msg)                              #uncomment me to run on pi
 print("\n")
 
 # End of Send code ---------------------------------------------------------
