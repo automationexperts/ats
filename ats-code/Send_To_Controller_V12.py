@@ -116,10 +116,19 @@ def generate_menu_items():
          "4":[4,"Set Radius of Curvature (m)",set_radius],
          "5":[5,"Move R-Axis (mm)",move_Raxis],
          "6":[6,"Move Theta-Axis (deg)",move_Taxis],
-         "7":[7,"Move to Curving Position",move_Curve]
+         "7":[7,"Move to Curving Position",move_Curve],
          "8":[8,"Zero curving position",zero],
+         "9":[9,"Move curve to zero (home) position",home]
          }
     return a
+
+def home():
+    raxis.AbsPos = 0
+    thetaxis.AbsPos = 0
+    
+    global last_action
+    last_action = "Curve is moved back to zero (home) position"    
+    return 
 
 def zero():
     '''
@@ -175,11 +184,11 @@ def stop_all():
 
     :return:
     '''
-
-    stage1.Stop()
-    stage2.Stop()
-    thetaxis.Stop()
-    raxis.Stop()
+    for i in range(0,5):
+        stage1.Stop()
+        stage2.Stop()
+        thetaxis.Stop()
+        raxis.Stop()
     
     #set last_action message on hmi screen
     global last_action
