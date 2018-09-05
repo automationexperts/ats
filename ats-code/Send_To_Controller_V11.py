@@ -7,12 +7,14 @@ Created on Thu Jun 21 11:55:13 2018
 
 import time
 import sys
-#import serial          #uncomment me to run on pi
+import serial          #uncomment me to run on pi
 import numpy #unable to install numpy to the raspberry pi
-#from RPi import GPIO   #uncomment me to run on pi
+from RPi import GPIO   #uncomment me to run on pi
 import binascii
 import math
 import os
+import DMM_Servo_Communication as com
+
 
 #Function (Sent by host)
 General_Read =          0x0e
@@ -249,8 +251,8 @@ def Send(driveID, ToDo, packet):
         a=a+1
     OutArray[OutLen+2] = B0
 
-#    ser.write(OutArray)             #uncomment me to run on pi
-#    ser.flush()                     #uncomment me to run on pi
+    ser.write(OutArray)             #uncomment me to run on pi
+    ser.flush()                     #uncomment me to run on pi
     
     #display the output
     print("Displaying Output of Send()")
@@ -391,6 +393,20 @@ xtslope = 0.38119333
 
 # INITIALIZATION ---------------------------- [START]
 
+#BRAD'S code for initializing servos
+taxis = com.Position(angle_drive_id)
+raxis = com.Position(radius_drive_id)
+#stage1 = com.Position(stage1_drive_id)
+#stage2 = com.Position(stage2_drive_id)
+
+raxis.sethighspeed(40)
+raxis.sethighacl(16)
+taxis.sethighspeed(12)
+taxis.sethighacl(6)
+
+print(raxis.GearNum)
+print(taxis.GearNum)
+
 #define variable for linear speed in m/min.
 #default value is 1.0 m/min
 linear_speed = 1.0 #m/min
@@ -401,18 +417,20 @@ stage1_gear_num = 4096 #gear_num parameter for the stage 1 servo
 stage2_gear_num = 4096 #gear_num parameter for the stage 2 servo
 #gear number is from 500 to 16384
 
+
+
 #default values for max speed and max acceleration
 #valid values are between 1 and 127 (integer)
 #these values should be read in in the initalization period once we have the read functionality working
 k_stage1_mAcc = 2
 k_stage2_mAcc = 2
-k_radius_mAcc = 2
-k_theta_mAcc = 2
+k_radius_mAcc = raxis.gethighacl()
+k_theta_mAcc = taxis.gethighacl()
 
 k_stage1_mSpeed = 50
 k_stage2_mSpeed = 50
-k_radius_mSpeed = 50
-k_theta_mSpeed = 50
+k_radius_mSpeed = raxis.gethighspeed()
+k_theta_mSpeed = taxis.gethighspeed()
 
 last_action = "N/A"
 
@@ -492,7 +510,8 @@ def generate_menu_items():
          "4":[4,"Set Radius of Curvature (m)",set_radius],
          "5":[5,"Move R-Axis (mm)",move_Raxis],
          "6":[6,"Move Theta-Axis (deg)",move_Taxis],
-         "7":[7,"Move to Curving Position",move_Curve]}
+         "7":[7,"Set Zero Position",zero],
+         "8":[8,"Move to Curving Position",move_Curve]}
     return a
 
 def stage1_start(rpm):
@@ -611,6 +630,31 @@ def move_Taxis():
 
     return
 
+def zero():
+    '''
+    :sets the raxis and taxis to a zero or origin point
+    '''
+    raxis.SetOrigin()
+    taxis.SetOrigin()
+    
+    global last_action
+    last_action = "radius and theta axes set to zero at current position"    
+    
+     #for later on when we incorporate a proximity sensor
+    #com.ConstSpeed(raxis.driveID,60) #move servo closer to the sensor
+    #com.ConstSpeed(thetaxis.driveID,60)
+    #while (radlimit == false):
+        #test GPIO to determine when radlimit becomes true
+    #com.ConstSpeed(raxis.driveID,0)
+    #com.ConstSpeed(thetaxis.driveID,0)
+    #raxis.SetOrigin()
+    #thetaxis.SetOrigin()  
+    
+    return   
+
+    
+
+
 def move_Curve():
     '''
     Takes in radius of curvature (m)
@@ -674,7 +718,7 @@ def move_Curve():
     #test code to test servo drive max acceleration and velocity constants
     #z = 1000000
     #Send(radius_drive_id,Go_Relative_Pos,z)
-    #Send(angle_drive_id,Go_Relative_P#os,int(z*0.38119333))
+    #Send(angle_drive_id,Go_Relative_Pos,int(z*0.38119333))
     
     #set last_action message on hmi screen
     global last_action
@@ -770,10 +814,14 @@ def hmi_display(menu_items):
     
     print("R-axis Maximum Acceleration\t\t",max_motor_acceleration(k_radius_mAcc,gear_ratio(R_gear_num)),"rpm/s")
     print("R-axis Maximum Speed\t\t\t",max_motor_speed(k_radius_mSpeed,gear_ratio(R_gear_num)),"rpm")
+    print("R-axis High Speed Constant\t\t",k_radius_mSpeed,"[Unitless]")
+    print("R-axis High Acceleration Constant\t",k_radius_mAcc,"[Unitless]")
     print("\n")
     
     print("T-axis Maximum Acceleration\t\t",max_motor_acceleration(k_theta_mAcc,gear_ratio(T_gear_num)),"rpm/s")
     print("T-axis Maximum Speed\t\t\t",max_motor_speed(k_theta_mSpeed,gear_ratio(T_gear_num)),"rpm")
+    print("T-axis High Speed Constant\t\t",k_theta_mSpeed,"[Unitless]")
+    print("T-axis High Acceleration Constant\t",k_theta_mAcc,"[Unitless]")
     print("\n")
     print("Last Action:",last_action)
     print("\n")
@@ -829,7 +877,7 @@ def execute_command(a):
 # page 50 of controller manual
 
 #uncomment me to run on pi
-#ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)  #this is the only serial port we use on the pi
+ser = serial.Serial("/dev/serial0", baudrate =  38400, timeout = 2, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)  #this is the only serial port we use on the pi
 
 
 #ser.baudrate = 38400
@@ -856,10 +904,10 @@ ToController = Send(driveID, FunctionCode, data)
 
 #read 100 characters and store it in str msg
 print("Data Received:")
-#msg = ser.read(1000)                    #uncomment me to run on pi
+msg = ser.read(1000)                    #uncomment me to run on pi
 
 #print the string msg
-#print(msg)                              #uncomment me to run on pi
+print(msg)                              #uncomment me to run on pi
 print("\n")
 
 # End of Send code ---------------------------------------------------------
