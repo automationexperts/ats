@@ -49,39 +49,53 @@ n_pinion = 12 #number of teeth on the pinion spur gear
 #ie. theta (deg) / r (m) = 0.38119333
 xtslope = 0.38119333
 
+#starting radius of curvature
+radius_curvature = 0
+
+print("part 1 initialization done")
+
 # MACHINE CHARACTERISTICS ---------------------------- [END]
 
 # INITIALIZATION ---------------------------- [START]
 
 #BRAD'S code for initializing servos
 taxis = com.Position(angle_drive_id)
+print("taxis")
 raxis = com.Position(radius_drive_id)
+print("raxis")
 stage1 = com.Position(stage1_drive_id)
+print("stage 1")
 stage2 = com.Position(stage2_drive_id)
+print("stage2")
+print("objects initialized")
 
 raxis.sethighspeed(40)
 raxis.sethighacl(16)
 taxis.sethighspeed(12)
 taxis.sethighacl(6)
-
-print(raxis.GearNum)
-print(taxis.GearNum)
+print("speed and accel set")
 
 #define variable for linear speed in m/min.
 #default value is 1.0 m/min
 linear_speed = 1.0 #m/min
 radius_curvature = 1.5 #15.240 #m
-raxis.GearNum = 4096 #gear_num parameter for the r-axis servo
-taxis.GearNum = 4096 #gear_num parameter for the theta-axis servo
-stage1.GearNum = 4096 #gear_num parameter for the stage 1 servo
-stage2.GearNum = 4096 #gear_num parameter for the stage 2 servo
+
+for i in range(0,5):
+    raxis.GearNum = 4096 #gear_num parameter for the r-axis servo
+    taxis.GearNum = 4096 #gear_num parameter for the theta-axis servo
+    stage1.GearNum = 4096 #gear_num parameter for the stage 1 servo
+    stage2.GearNum = 4096 #gear_num parameter for the stage 2 servo
+print("gearnums set")
 #gear number is from 500 to 16384
 
 #default values for max speed and max acceleration
 #valid values are between 1 and 127 (integer)
 #these values should be read in in the initalization period once we have the read functionality working
-stage1.MaxAcceleration = 2
-stage2.MaxAcceleration = 2
+#stage1.MaxAcceleration = 2
+#stage2.MaxAcceleration = 2
+
+stage1.HighAccel = 30
+stage2.HighAccel = 30
 k_radius_mAcc = raxis.HighAccel
 k_theta_mAcc = taxis.HighAccel
 
@@ -89,6 +103,7 @@ k_stage1_mSpeed = 50
 k_stage2_mSpeed = 50
 k_radius_mSpeed = raxis.HighSpeed
 k_theta_mSpeed = taxis.HighSpeed
+print("objects fully set")
 
 last_action = "N/A"
 
@@ -156,8 +171,8 @@ def set_radius():
 
 def generate_menu_items():
     a = {"0":[0,"Stop All Rollers",stop_all],
-         "1":[1,"Start Stage 1 Rollers",stage1_start,get_rpm(linear_speed,roller_diameter,stage1_gear_ratio)],
-         "2":[2,"Start Stage 2 Rollers",stage2_start,get_rpm(linear_speed,roller_diameter,stage2_gear_ratio)],
+         "1":[1,"Start Stage 1 Rollers",stage1_start,get_rpm(linear_speed,stage1)],
+         "2":[2,"Start Stage 2 Rollers",stage2_start,get_rpm(linear_speed,stage2)],
          "3":[3,"Set Linear Speed (m/min)",set_linear_speed],
          "4":[4,"Set Radius of Curvature (m)",set_radius],
          "5":[5,"Move R-Axis (mm)",move_Raxis],
@@ -271,7 +286,8 @@ def move_Raxis():
     print(steps)
     print(int(round(steps)))
 
-    raxis.GoToRel(send_steps)
+    raxis.AbsPos = send_steps
+    #raxis.GoToRel(send_steps)
     #Send(radius_drive_id,Go_Relative_Pos,send_steps)
     
     #z=Obtain()
@@ -309,7 +325,8 @@ def move_Taxis():
     print(steps)
     print(int(round(steps)))
 
-    taxis.GoToRel(send_steps)
+    taxis.AbsPos = send_steps
+    #taxis.GoToRel(send_steps)
     #Send(angle_drive_id,Go_Relative_Pos,send_steps)
 
     # how many steps in a full revolution???
@@ -380,8 +397,11 @@ def move_Curve():
     #send the steps for r-axis and t-axis to the drives
     #Send(radius_drive_id,Go_Relative_Pos,send_steps_r)
     #Send(angle_drive_id,Go_Relative_Pos,send_steps_t)
-    taxis.GoToRel(send_steps_r)
-    raxis.GoToRel(send_steps_t)
+    #taxis.GoToRel(send_steps_r)
+    #raxis.GoToRel(send_steps_t)
+
+    taxis.AbsPos = send_steps_r
+    raxis.AbsPos = send_steps_t
 
     #test code to test servo drive max acceleration and velocity constants
     #z = 1000000
@@ -468,8 +488,8 @@ def hmi_display(menu_items):
 
     
     print("Linear Speed (of profile) Set Point\t",linear_speed,"m/min")
-    print("STAGE 1 RPM Set Point\t\t\t",get_rpm(linear_speed,roller_diameter,stage1_gear_ratio),"rpm")
-    print("STAGE 2 RPM Set Point\t\t\t",get_rpm(linear_speed,roller_diameter,stage2_gear_ratio),"rpm")
+    print("STAGE 1 RPM Set Point\t\t\t",get_rpm(linear_speed,stage1),"rpm")
+    print("STAGE 2 RPM Set Point\t\t\t",get_rpm(linear_speed,stage2),"rpm")
     print("\n")
     
     #print("Stage 1 Maximum Acceleration\t\t",max_motor_acceleration(k_stage1_mAcc,gear_ratio(stage1_gear_num)),"rpm/s")
@@ -500,6 +520,8 @@ def hmi_display(menu_items):
     print("T-axis Maximum Speed\t\t\t",taxis.MaxSpeed,"rpm")
     print("T-axis High Speed Constant\t\t",k_theta_mSpeed,"[Unitless]")
     print("T-axis High Acceleration Constant\t",k_theta_mAcc,"[Unitless]")
+    print("\n")
+    print("Current Radius of curvature\t",radius_curvature,"  m or ft")
     print("\n")
     print("Last Action:",last_action)
     print("\n")

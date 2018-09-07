@@ -639,7 +639,9 @@ def GoAbsPosition(driveID, position):
     :param driveID: servo controller identification number
     :param position: absolute position to send drive to
     '''
-    Send(driveID, Go_Absolute_Pos, position)   
+    Send(driveID, Go_Absolute_Pos, position)
+    Send(driveID, Go_Absolute_Pos, position)
+    Send(driveID, Go_Absolute_Pos, position)
     
 def AbsPosRead(driveID):
     '''
@@ -674,20 +676,20 @@ class Position():
         self._HighSpeed = ReadHighSpeed(driveID)
         self._HighAccel = ReadHighAccel(driveID)
         self._Pos_OnRange = ReadPos_OnRange(driveID)
-        self._GearNum = ReadPos_FoldNumber(driveID)
+        self._GearNum = ReadPos_FoldNumber(driveID)   #note that gear number isn't saved and needs to be updated every reset
         self._GearRatio = 4096 / self._GearNum
         self._MaxMotorSpeed = (1/16)*(self._HighSpeed+3)*(self._HighSpeed+3)*12.21*self._GearRatio
         self._MaxMotorAcceleration = self._HighAccel*635.78*self._GearRatio
-        self._AbsPos = AbsPosRead(driveID)
-        self._origin = AbsPosRead(driveID) #origin initially set to position where equipment starts up
+        self._AbsPos = 0 #AbsPosRead(driveID)
+        self._origin = int(AbsPosRead(driveID) / 4) #origin initially set to position where equipment starts up
         
     def Stop(self): #immediately stops the servo moving
         ConstSpeed(self._driveID, 0)
-        self._AbsPos = AbsPosRead(self._driveID) - self._origin
+        self._AbsPos = int(AbsPosRead(self._driveID) / 4) - self._origin
     
     def SetOrigin(self): #sets current position to zero
         #Send(self._driveID,Set_Origin,0x00) #only works when controller in absolute mode and encoder only single term
-        self._origin = AbsPosRead(self._driveID)
+        self._origin = int(AbsPosRead(self._driveID) /4)
         self._AbsPos = 0
     
     def GoToRel(self,position): #go to a position specified relative to the current one
@@ -695,7 +697,7 @@ class Position():
         self._AbsPos = self._AbsPos + position #use RefreshPos after movement to get accurate position
         
     def RefreshPos(self): #refreshes the absolute position attributed by reading the servo
-        self._AbsPos = AbsPosRead(self._driveID) - self._origin
+        self._AbsPos = int(AbsPosRead(self._driveID) / 4) - self._origin
         return self._AbsPos
     
     def isStopped(self): #function that can be used to poll motor to determine if it is moving
@@ -842,10 +844,10 @@ class Position():
         self._GearRatio = 4096 / self._GearNum
         return self._GearNum
     
-    def getpos2(self): #returns value of gain stored in memory
+    def getGearNum(self): #returns value of gain stored in memory
         return self._GearNum
     
-    def setpos2(self,FoldNumber): #sets main gain and assigns the input value to the controller
+    def setGearNum(self,FoldNumber): #sets main gain and assigns the input value to the controller
         if FoldNumber > 16384 or FoldNumber < 500:
             print('value out of range')
             return self._GearNum
@@ -853,10 +855,10 @@ class Position():
         self._GearRatio = 4096 / self._GearNum
         return self._GearNum
     
-    def delpos2(self):
+    def delGearNum(self):
         print('Error: unable to delete fold number')
     
-    GearNum = property(getpos2, setpos2, delpos2, 'Fold Number')
+    GearNum = property(getGearNum, setGearNum, delGearNum, 'Fold Number')
     
     def getratio(self):
         return self._GearRatio
