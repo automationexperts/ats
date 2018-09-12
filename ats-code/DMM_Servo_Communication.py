@@ -799,7 +799,7 @@ class Position():
     def delhighspeed(self):
         print('Error: unable to delete speed')
     
-    HighSpeed = property(gethighspeed, sethighspeed, sethighspeed, 'High Speed')
+    HighSpeed = property(gethighspeed, sethighspeed, delhighspeed, 'High Speed')
     
     def RefreshHighAccel(self): #asks servo controller for gain value
         self._HighAccel = ReadHighAccel(self._driveID)

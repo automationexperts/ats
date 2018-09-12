@@ -49,9 +49,6 @@ n_pinion = 12 #number of teeth on the pinion spur gear
 #ie. theta (deg) / r (m) = 0.38119333
 xtslope = 0.38119333
 
-#starting radius of curvature
-radius_curvature = 0
-
 print("part 1 initialization done")
 
 # MACHINE CHARACTERISTICS ---------------------------- [END]
@@ -280,6 +277,7 @@ def move_Raxis():
 
     d = float(input("Distance to move R-Axis (mm):"))
     spr = 4 * raxis.GearNum #R_gear_num  # steps per revolution
+    print(spr)
     steps = d/ballscrew_lead*spr*radius_gear_ratio
     send_steps = int(round(steps))
 
@@ -319,6 +317,7 @@ def move_Taxis():
 
     theta = float(input("Angle to move Theta-Axis (deg):"))
     spr = 4 * taxis.GearNum #T_gear_num  # steps per revolution for theta-axis servo
+    print(spr)
     steps = spr * (n_rack/n_pinion) * theta / 360 * theta_gear_ratio #use formula to calculate steps made by the servo
     send_steps = int(round(steps))
 
@@ -376,6 +375,7 @@ def move_Curve():
     
     #calculate the steps for r-axis movement
     spr_r = 4 * raxis.GearNum #R_gear_num  # steps per revolution
+    print(spr_r)
     steps_r = x/ballscrew_lead*spr_r*radius_gear_ratio
     send_steps_r = int(round(steps_r))
 
@@ -386,6 +386,7 @@ def move_Curve():
     
     #calculate the steps for theta-axis movement
     spr_t = 4 * taxis.GearNum #T_gear_num  # steps per revolution for theta-axis servo
+    print(spr_t)
     steps_t = spr_t * (n_rack/n_pinion) * theta / 360 * theta_gear_ratio #use formula to calculate steps made by the servo
     send_steps_t = int(round(steps_t))
 
